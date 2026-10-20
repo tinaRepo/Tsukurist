@@ -23,15 +23,15 @@ const FEATURES = [
 // 料金プラン
 const PLANS = [
   { label: "無料", price: "¥0", period: "", features: ["タスクの登録・管理", "画像 合計10枚まで", "全ステータス対応", "納期アラート"], cta: "無料で始める", featured: false },
-  { label: "スタンダード", price: "¥300", period: "/月", features: ["タスクの登録・管理", "画像 合計50枚まで", "全ステータス対応", "納期アラート"], cta: "始める", featured: false },
-  { label: "プレミアム", price: "¥800", period: "/月", features: ["タスクの登録・管理", "画像 無制限", "全ステータス対応", "納期アラート", "優先サポート"], cta: "始める", featured: true },
+  { label: "スタンダード", price: "¥300", period: "/月", features: ["タスクの登録・管理", "カレンダー表示", "画像 合計50枚まで", "全ステータス対応", "納期アラート"], cta: "始める", featured: false },
+  { label: "プレミアム", price: "¥800", period: "/月", features: ["タスクの登録・管理", "カレンダー表示", "共有用公開ページ", "画像 無制限", "全ステータス対応", "納期アラート", "優先サポート"], cta: "始める", featured: true },
 ];
 
 // FAQ
 const FAQS = [
-  { q: "無料プランでいつまでも使えますか？", a: "はい、無料プランは期限なく使えます。画像の合計枚数が10枚を超えた場合は有料プランへのアップグレードが必要です。" },
+  { q: "無料プランでいつまでも使えますか？", a: "はい、無料プランは期限なく使えます。画像は合計10枚まで利用でき、カレンダー表示は有料プランで利用できます。" },
   { q: "支払い方法は何が使えますか？", a: "クレジットカード・デビットカードが使えます。決済はStripeで安全に処理され、カード情報は当サービスには保存されません。" },
-  { q: "解約はいつでもできますか？", a: "いつでも即時解約できます。未使用期間分は日割り計算し、支払い済み金額を上限として元のカードへ返金します。返金の反映時期はカード会社により異なります。プラン変更時も残り期間に応じて日割り計算されます。" },
+  { q: "解約はいつでもできますか？", a: "いつでも解約を予約できます。契約期間の終了日までは現在のプランをご利用いただけ、期間終了後に解約されます。アップグレード時は残り期間に応じた差額を日割り計算して請求します。解約による返金は原則行っておりません。返金が必要な場合はお問い合わせください。" },
   { q: "スマホでも使えますか？", a: "はい、スマホ・タブレット・PCすべてに対応しています。SafariやChromeからホーム画面に追加するとアプリのように使えます。" },
   { q: "データは安全ですか？", a: "データはSupabaseに安全に保存され、SSL通信・行レベルセキュリティにより他のユーザーからのアクセスは完全に遮断されています。" },
 ];
@@ -74,7 +74,7 @@ export default function LandingPage() {
 
         <div className="row" style={{ gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
           <a href="/login" className="btn btn-primary" style={{ textDecoration: "none" }}>無料で始める →</a>
-          <a href="/login?demo=1" className="btn btn-secondary" style={{ textDecoration: "none" }}>デモを試す</a>
+          <a href="/demo" className="btn btn-secondary" style={{ textDecoration: "none" }}>デモを試す</a>
         </div>
         <p style={{ fontSize: 12, color: "var(--meta)", marginTop: 20 }}>クレジットカード不要・登録1分</p>
 
@@ -181,29 +181,22 @@ export default function LandingPage() {
         <p style={{ color: "var(--muted)", fontSize: 14, marginBottom: 32 }}>登録1分・クレジットカード不要</p>
         <div className="row" style={{ gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
           <a href="/login" className="btn btn-primary" style={{ textDecoration: "none" }}>無料アカウントを作成 →</a>
-          <a href="/login?demo=1" className="btn btn-secondary" style={{ textDecoration: "none" }}>デモを試す</a>
+          <a href="/demo" className="btn btn-secondary" style={{ textDecoration: "none" }}>デモを試す</a>
         </div>
       </section>
 
       {/* フッター */}
-      <footer style={{ borderTop: "1px solid var(--border-soft)", padding: "32px 24px" }}>
-        <div className="container" style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: 16 }}>
-          <span style={{ fontWeight: 600, fontSize: 14 }}>ツクリスト</span>
-          <div className="row" style={{ flexWrap: "wrap", gap: "4px 16px" }}>
-            {[
-              { href: "/lp", label: "サービス紹介" },
-              { href: "/guide", label: "使い方" },
-              { href: "/terms", label: "利用規約" },
-              { href: "/privacy", label: "プライバシー" },
-              { href: "/tokusho", label: "特定商取引法" },
-            ].map(link => (
-              <a key={link.href} href={link.href} style={{ fontSize: 12, color: "var(--muted)", textDecoration: "none" }}>
-                {link.label}
-              </a>
-            ))}
-          </div>
-          <span style={{ fontSize: 11, color: "var(--meta)" }}>© 2026 ツクリスト</span>
+      <footer className="app-footer">
+        <div className="footer-links">
+          {[
+            { href: "/", label: "サービス紹介" },
+            { href: "/guide", label: "使い方" },
+            { href: "/terms", label: "利用規約" },
+            { href: "/privacy", label: "プライバシー" },
+            { href: "/tokusho", label: "特定商取引法" },
+          ].map(link => <a key={link.href} href={link.href}>{link.label}</a>)}
         </div>
+        <div className="text-meta" style={{ marginTop: 10 }}>© 2026 ツクリスト</div>
       </footer>
     </div>
   );

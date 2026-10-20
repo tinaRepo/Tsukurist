@@ -1,8 +1,4 @@
 User-agent: *
 Allow: /
-Disallow: /login
-Disallow: /update-password
-Disallow: /maintenance
-Disallow: /forbidden
 
 Sitemap: https://tsukurist.com/sitemap.xml

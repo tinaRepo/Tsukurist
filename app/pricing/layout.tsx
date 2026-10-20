@@ -1,10 +1,6 @@
-import { createPublicPageMetadata } from "@/lib/seo";
+import { noIndexMetadata } from "@/lib/seo";
 
-export const metadata = createPublicPageMetadata(
-    "料金プラン",
-    "ツクリストの無料・スタンダード・プレミアム各プランの料金と機能をご案内します。",
-    "/pricing"
-);
+export const metadata = { ...noIndexMetadata, title: "料金プラン | ツクリスト" };
 
 export default function PricingLayout({ children }: { children: React.ReactNode }) {
     return children;

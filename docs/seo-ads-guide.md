@@ -4,10 +4,11 @@
 
 - 本番の正規URLは `https://tsukurist.com` です。サイトURLの定義は `lib/site.ts` の `SITE_URL` にあり、`lib/seo.ts` から再エクスポートされています。
 - 共通metadataは `app/layout.tsx`、ページ固有のmetadataは各公開ページで設定します。
-- 公開対象のURLは `app/sitemap.ts` に登録し、`public/robots.txt` のサイトマップURLと合わせます。ログイン後のアプリ画面は公開対象に含めません。`robots.txt` は静的ファイルのため、Preview環境を自動的に全面Disallowする仕組みではありません。
+- トップページ `/` は未ログイン時にサービス紹介を表示し、ログインCookieがある場合はアプリを表示して `noindex` にします。旧URL `/lp` は `/` へ恒久転送します。ログイン後のアプリ、デモ、管理、課金画面は検索対象にしません。
+- 公開対象のURLだけを `app/sitemap.ts` に登録し、`public/robots.txt` のサイトマップURLと合わせます。検索対象外の画面は `noindex` metadataで指定します。robots.txtでクロール自体を拒否すると検索エンジンがnoindexを確認できないため、通常はDisallowしません。`robots.txt` は静的ファイルのため、Preview環境を自動的に全面Disallowする仕組みではありません。
 - URLや公開ページを変更した場合はmetadata、canonical、サイトマップ、robots.txtをまとめて確認します。
 - Google Search Consoleには実サイトURLのURLプレフィックスを登録し、所有権を確認して `/sitemap.xml` を送信します。
-- `robots.txt` でクロールを禁止したページは検索エンジンが `noindex` を確認できません。検索結果からの削除が必要な場合は、robots.txtの制限を一時的に見直してください。
+- 検索結果からの削除・新規登録を反映するには時間がかかることがあります。Search ConsoleのURL検査でGoogleが取得したHTMLとcanonicalを確認し、必要に応じてインデックス登録をリクエストします。
 
 ## Google AdSense
 

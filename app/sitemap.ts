@@ -3,8 +3,7 @@ import { SITE_URL } from "@/lib/seo";
 
 export default function sitemap(): MetadataRoute.Sitemap {
     const publicPages = [
-        ["/lp", 1.0],
-        ["/pricing", 0.8],
+        ["/", 1.0],
         ["/guide", 0.7],
         ["/terms", 0.3],
         ["/privacy", 0.3],
