@@ -23,6 +23,9 @@ const nextConfig = {
       },
     ],
   },
+  async redirects() {
+    return [{ source: "/lp", destination: "/", permanent: true }];
+  },
   async headers() {
     return [
       { source: "/:path*", headers: securityHeaders },

@@ -298,7 +298,7 @@ export default function LoginPage() {
 
         <div className="footer-links" style={{ marginTop: 28, paddingTop: 20, borderTop: "1px solid var(--border-soft)" }}>
           {[
-            { href: "/lp", label: "サービス紹介" },
+            { href: "/", label: "サービス紹介" },
             { href: "/guide", label: "使い方" },
             { href: "/terms", label: "利用規約" },
             { href: "/privacy", label: "プライバシー" },

@@ -395,6 +395,7 @@ where id = 'ここに UUID を貼る';
 ## 9. SEO・広告運用
 
 Google Search Console・Google AdSenseの設定は、[docs/seo-ads-guide.md](docs/seo-ads-guide.md) を参照してください。
+トップページ `/` は未ログイン時にサービス紹介、ログイン中はアプリを表示します。公開対象URL・`noindex`・サイトマップ・広告対象を変更する場合は、SEO・広告ガイドに沿って一緒に確認してください。
 
 ---
 

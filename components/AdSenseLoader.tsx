@@ -12,19 +12,22 @@ import { usePathname } from "next/navigation";
 //   （広告は読み込まない。サイト所有の確認専用）
 // - スクリプトは next/script ではなく手動で挿入する（next/script は data-nscript 属性を付与し、
 //   AdSense側から警告が出るため。docs/seo-ads-guide.md 参照）
-// - 公開ページからアプリへは通常のリンク（フルページ遷移）なので、読み込んだスクリプトがアプリ内に残らない
+// - / は未ログイン時のみ公開ページ。ログイン中はnoindex metadataを見て広告を読み込まない
 // ============================================================
 
 const ADSENSE_CLIENT = "ca-pub-4461599437148086";
 
 // 広告を表示してよい公開ページ。/pricing はログインが必要なため含めない
-export const AD_ALLOWED_PATHS = ["/lp", "/guide", "/terms", "/privacy", "/tokusho"];
+export const AD_ALLOWED_PATHS = ["/", "/guide", "/terms", "/privacy", "/tokusho"];
 
 export default function AdSenseLoader() {
   const pathname = usePathname();
 
   useEffect(() => {
     if (!AD_ALLOWED_PATHS.includes(pathname)) return;
+    const robots = document.querySelector('meta[name="robots"]')?.getAttribute("content");
+    if (pathname === "/" && robots?.split(",").some(value => value.trim() === "noindex")) return;
+
     const w = window as unknown as { __adsenseLoaded?: boolean };
     if (w.__adsenseLoaded) return;
     w.__adsenseLoaded = true;
