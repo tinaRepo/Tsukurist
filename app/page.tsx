@@ -19,8 +19,8 @@ export function generateMetadata(): Metadata {
     return { ...noIndexMetadata, title: { absolute: "タスク管理 | ツクリスト" } };
   }
   return createPublicPageMetadata(
-    "納期・タスク管理ツール",
-    "依頼状況・納期・金額・画像をまとめて管理。外注・依頼を整理できる無料の納期管理ツールです。",
+    "納期管理ツール｜外注・依頼のタスク管理",
+    "ツクリストは、外注・依頼の納期、金額、確認用画像をまとめて管理できる無料の納期管理Webアプリ。スマホ対応、納期7日前の通知付き。登録1分・カード不要。",
     "/"
   );
 }

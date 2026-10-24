@@ -47,158 +47,180 @@ export default function LandingPage() {
   }, []);
 
   return (
-    <div style={{ background: "var(--surface-sky)", color: "var(--fg)" }}>
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "WebApplication",
+            name: "ツクリスト",
+            url: "https://tsukurist.com",
+            applicationCategory: "BusinessApplication",
+            operatingSystem: "Web",
+            inLanguage: "ja",
+            description: "外注・依頼の納期、金額、確認用画像をまとめて管理できる納期管理Webアプリ",
+            offers: [
+              { "@type": "Offer", name: "無料", price: "0", priceCurrency: "JPY" },
+              { "@type": "Offer", name: "スタンダード", price: "300", priceCurrency: "JPY" },
+              { "@type": "Offer", name: "プレミアム", price: "800", priceCurrency: "JPY" },
+            ],
+          }),
+        }}
+      />
+      <div style={{ background: "var(--surface-sky)", color: "var(--fg)" }}>
 
-      {/* ナビ */}
-      <nav className="nav-public" style={{
-        background: scrolled ? "color-mix(in srgb, var(--surface-sky) 80%, transparent)" : "transparent",
-        backdropFilter: scrolled ? "saturate(180%) blur(20px)" : "none",
-        WebkitBackdropFilter: scrolled ? "saturate(180%) blur(20px)" : "none",
-        borderBottom: scrolled ? "1px solid var(--border-soft)" : "1px solid transparent",
-      }}>
-        <span style={{ fontWeight: 600, fontSize: 16, letterSpacing: "-0.01em" }}>ツクリスト</span>
-        <div className="row" style={{ gap: 16 }}>
-          <a href="/login" style={{ color: "var(--fg-2)", fontSize: 13, textDecoration: "none", fontWeight: 600 }}>ログイン</a>
-          <a href="/login" className="btn btn-primary btn-sm" style={{ textDecoration: "none" }}>無料で始める</a>
-        </div>
-      </nav>
-
-      {/* ヒーロー */}
-      <section className="hero">
-        <div className="hero-eyebrow">納期・タスク管理ツール</div>
-        <h1 className="hero-title">納期を、<br />もう迷子にしない。</h1>
-        <p className="hero-subtitle">
-          依頼状況・納期・金額・画像をまとめて管理。<br />
-          外注・依頼をスッキリ整理できる無料Webアプリ。
-        </p>
-
-        <div className="row" style={{ gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
-          <a href="/login" className="btn btn-primary" style={{ textDecoration: "none" }}>無料で始める →</a>
-          <a href="/demo" className="btn btn-secondary" style={{ textDecoration: "none" }}>デモを試す</a>
-        </div>
-        <p style={{ fontSize: 12, color: "var(--meta)", marginTop: 20 }}>クレジットカード不要・登録1分</p>
-
-        {/* モックUI */}
-        <div className="card" style={{
-          marginTop: 72, width: "100%", maxWidth: 640, padding: 20, textAlign: "left",
+        {/* ナビ */}
+        <nav className="nav-public" style={{
+          background: scrolled ? "color-mix(in srgb, var(--surface-sky) 80%, transparent)" : "transparent",
+          backdropFilter: scrolled ? "saturate(180%) blur(20px)" : "none",
+          WebkitBackdropFilter: scrolled ? "saturate(180%) blur(20px)" : "none",
+          borderBottom: scrolled ? "1px solid var(--border-soft)" : "1px solid transparent",
         }}>
-          <div className="row" style={{ justifyContent: "space-between", marginBottom: 16, padding: "10px 14px", borderBottom: "1px solid var(--border-soft)" }}>
-            <span style={{ fontWeight: 600, fontSize: 13 }}>ツクリスト</span>
-            <div className="row" style={{ gap: 16, fontSize: 11, color: "var(--muted)" }}>
-              <span>合計 <strong style={{ color: "var(--fg)" }}>5</strong></span>
-              <span>進行中 <strong style={{ color: "var(--fg)" }}>3</strong></span>
-              <span>完成 <strong style={{ color: "var(--fg)" }}>2</strong></span>
-            </div>
+          <span style={{ fontWeight: 600, fontSize: 16, letterSpacing: "-0.01em" }}>ツクリスト</span>
+          <div className="row" style={{ gap: 16 }}>
+            <a href="/login" style={{ color: "var(--fg-2)", fontSize: 13, textDecoration: "none", fontWeight: 600 }}>ログイン</a>
+            <a href="/login" className="btn btn-primary btn-sm" style={{ textDecoration: "none" }}>無料で始める</a>
           </div>
-          {MOCK_TASKS.map((t, i) => (
-            <div key={i} className="row" style={{
-              justifyContent: "space-between", padding: "12px 14px", marginBottom: 6,
-              borderRadius: "var(--radius-md)",
-              background: t.urgent ? "var(--danger-soft)" : "var(--surface)",
-            }}>
-              <div>
-                <div className="row" style={{ gap: 8, marginBottom: 4 }}>
-                  <span style={{ fontWeight: 600, fontSize: 13 }}>{t.title}</span>
-                  <span className="badge badge-neutral">{t.status}</span>
-                  {t.urgent && <span style={{ fontSize: 10, color: "var(--danger)", fontWeight: 600 }}>あと3日</span>}
-                </div>
-                <div style={{ fontSize: 11, color: "var(--muted)" }}>{t.assignee} ・ 納期 {t.deadline}</div>
-              </div>
-              <div style={{ fontWeight: 600, fontSize: 14 }}>{t.price}</div>
-            </div>
-          ))}
-        </div>
-      </section>
+        </nav>
 
-      {/* 機能紹介（白背景セクションへ切り替え） */}
-      <section className="section" style={{ background: "var(--bg)", color: "var(--fg)" }}>
-        <div className="container-narrow" style={{ textAlign: "center", marginBottom: 48 }}>
-          <h2 className="section-title">依頼管理に必要な機能が全部揃ってる</h2>
-          <p className="section-subtitle">シンプルで使いやすい、納期管理専用ツール</p>
-        </div>
-        <div className="container">
-          <div className="feature-grid">
-            {FEATURES.map((f, i) => (
-              <div key={i} className="feature-cell">
-                <h3>{f.title}</h3>
-                <p>{f.desc}</p>
+        {/* ヒーロー */}
+        <section className="hero">
+          <div className="hero-eyebrow">納期・タスク管理ツール</div>
+          <h1 className="hero-title">納期を、<br />もう迷子にしない。</h1>
+          <p className="hero-subtitle">
+            依頼状況・納期・金額・画像をまとめて管理。<br />
+            外注・依頼をスッキリ整理できる無料Webアプリ。
+          </p>
+
+          <div className="row" style={{ gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
+            <a href="/login" className="btn btn-primary" style={{ textDecoration: "none" }}>無料で始める →</a>
+            <a href="/demo" className="btn btn-secondary" style={{ textDecoration: "none" }}>デモを試す</a>
+          </div>
+          <p style={{ fontSize: 12, color: "var(--meta)", marginTop: 20 }}>クレジットカード不要・登録1分</p>
+
+          {/* モックUI */}
+          <div className="card" style={{
+            marginTop: 72, width: "100%", maxWidth: 640, padding: 20, textAlign: "left",
+          }}>
+            <div className="row" style={{ justifyContent: "space-between", marginBottom: 16, padding: "10px 14px", borderBottom: "1px solid var(--border-soft)" }}>
+              <span style={{ fontWeight: 600, fontSize: 13 }}>ツクリスト</span>
+              <div className="row" style={{ gap: 16, fontSize: 11, color: "var(--muted)" }}>
+                <span>合計 <strong style={{ color: "var(--fg)" }}>5</strong></span>
+                <span>進行中 <strong style={{ color: "var(--fg)" }}>3</strong></span>
+                <span>完成 <strong style={{ color: "var(--fg)" }}>2</strong></span>
+              </div>
+            </div>
+            {MOCK_TASKS.map((t, i) => (
+              <div key={i} className="row" style={{
+                justifyContent: "space-between", padding: "12px 14px", marginBottom: 6,
+                borderRadius: "var(--radius-md)",
+                background: t.urgent ? "var(--danger-soft)" : "var(--surface)",
+              }}>
+                <div>
+                  <div className="row" style={{ gap: 8, marginBottom: 4 }}>
+                    <span style={{ fontWeight: 600, fontSize: 13 }}>{t.title}</span>
+                    <span className="badge badge-neutral">{t.status}</span>
+                    {t.urgent && <span style={{ fontSize: 10, color: "var(--danger)", fontWeight: 600 }}>あと3日</span>}
+                  </div>
+                  <div style={{ fontSize: 11, color: "var(--muted)" }}>{t.assignee} ・ 納期 {t.deadline}</div>
+                </div>
+                <div style={{ fontWeight: 600, fontSize: 14 }}>{t.price}</div>
               </div>
             ))}
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* プラン・料金 */}
-      <section className="section" style={{ background: "var(--surface)", color: "var(--fg)" }}>
-        <div className="container-narrow" style={{ textAlign: "center", marginBottom: 48 }}>
-          <h2 className="section-title">シンプルな料金プラン</h2>
-          <p className="section-subtitle">まずは無料で試してみてください</p>
-        </div>
-        <div className="container" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 20 }}>
-          {PLANS.map((p, i) => (
-            <div key={i} className={`pricing-card${p.featured ? " featured" : ""}`}>
-              {p.featured && (
-                <div style={{
-                  position: "absolute", top: -12, left: "50%", transform: "translateX(-50%)",
-                  background: "var(--accent)", color: "#fff", borderRadius: 999, padding: "3px 14px",
-                  fontSize: 11, fontWeight: 600, whiteSpace: "nowrap",
-                }}>
-                  おすすめ
-                </div>
-              )}
-              <div className="text-meta" style={{ marginBottom: 10, fontWeight: 600 }}>{p.label}</div>
-              <div style={{ marginBottom: 20 }}>
-                <span style={{ fontSize: 32, fontWeight: 600 }}>{p.price}</span>
-                <span style={{ fontSize: 13, color: "var(--muted)" }}>{p.period}</span>
-              </div>
-              <ul style={{ listStyle: "none", display: "grid", gap: 10, marginBottom: 26 }}>
-                {p.features.map(f => (
-                  <li key={f} style={{ display: "flex", gap: 8, fontSize: 13, color: "var(--fg-2)" }}>
-                    <span style={{ color: "var(--accent)", display: "inline-flex" }}><Icon name="check" size={16} /></span>{f}
-                  </li>
-                ))}
-              </ul>
-              <a href="/login" className={cxBtn(p.featured)} style={{ textDecoration: "none" }}>{p.cta}</a>
-            </div>
-          ))}
-        </div>
-        <p style={{ textAlign: "center", fontSize: 12, color: "var(--meta)", marginTop: 24 }}>いつでもキャンセル可能・月額制</p>
-      </section>
-
-      {/* FAQ */}
-      <section className="section" style={{ background: "var(--bg)", color: "var(--fg)" }}>
-        <div className="container-narrow">
-          <h2 className="section-title" style={{ textAlign: "center", marginBottom: 40 }}>よくある質問</h2>
-          <div style={{ display: "grid", gap: 10 }}>
-            {FAQS.map((item, i) => <FaqItem key={i} q={item.q} a={item.a} />)}
+        {/* 機能紹介（白背景セクションへ切り替え） */}
+        <section className="section" style={{ background: "var(--bg)", color: "var(--fg)" }}>
+          <div className="container-narrow" style={{ textAlign: "center", marginBottom: 48 }}>
+            <h2 className="section-title">依頼管理に必要な機能が全部揃ってる</h2>
+            <p className="section-subtitle">シンプルで使いやすい、納期管理専用ツール</p>
           </div>
-        </div>
-      </section>
+          <div className="container">
+            <div className="feature-grid">
+              {FEATURES.map((f, i) => (
+                <div key={i} className="feature-cell">
+                  <h3>{f.title}</h3>
+                  <p>{f.desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
 
-      {/* CTA */}
-      <section className="section" style={{ textAlign: "center" }}>
-        <h2 className="section-title">今すぐ無料で始めよう</h2>
-        <p style={{ color: "var(--muted)", fontSize: 14, marginBottom: 32 }}>登録1分・クレジットカード不要</p>
-        <div className="row" style={{ gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
-          <a href="/login" className="btn btn-primary" style={{ textDecoration: "none" }}>無料アカウントを作成 →</a>
-          <a href="/demo" className="btn btn-secondary" style={{ textDecoration: "none" }}>デモを試す</a>
-        </div>
-      </section>
+        {/* プラン・料金 */}
+        <section className="section" style={{ background: "var(--surface)", color: "var(--fg)" }}>
+          <div className="container-narrow" style={{ textAlign: "center", marginBottom: 48 }}>
+            <h2 className="section-title">シンプルな料金プラン</h2>
+            <p className="section-subtitle">まずは無料で試してみてください</p>
+          </div>
+          <div className="container" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 20 }}>
+            {PLANS.map((p, i) => (
+              <div key={i} className={`pricing-card${p.featured ? " featured" : ""}`}>
+                {p.featured && (
+                  <div style={{
+                    position: "absolute", top: -12, left: "50%", transform: "translateX(-50%)",
+                    background: "var(--accent)", color: "#fff", borderRadius: 999, padding: "3px 14px",
+                    fontSize: 11, fontWeight: 600, whiteSpace: "nowrap",
+                  }}>
+                    おすすめ
+                  </div>
+                )}
+                <div className="text-meta" style={{ marginBottom: 10, fontWeight: 600 }}>{p.label}</div>
+                <div style={{ marginBottom: 20 }}>
+                  <span style={{ fontSize: 32, fontWeight: 600 }}>{p.price}</span>
+                  <span style={{ fontSize: 13, color: "var(--muted)" }}>{p.period}</span>
+                </div>
+                <ul style={{ listStyle: "none", display: "grid", gap: 10, marginBottom: 26 }}>
+                  {p.features.map(f => (
+                    <li key={f} style={{ display: "flex", gap: 8, fontSize: 13, color: "var(--fg-2)" }}>
+                      <span style={{ color: "var(--accent)", display: "inline-flex" }}><Icon name="check" size={16} /></span>{f}
+                    </li>
+                  ))}
+                </ul>
+                <a href="/login" className={cxBtn(p.featured)} style={{ textDecoration: "none" }}>{p.cta}</a>
+              </div>
+            ))}
+          </div>
+          <p style={{ textAlign: "center", fontSize: 12, color: "var(--meta)", marginTop: 24 }}>いつでもキャンセル可能・月額制</p>
+        </section>
 
-      {/* フッター */}
-      <footer className="app-footer">
-        <div className="footer-links">
-          {[
-            { href: "/", label: "サービス紹介" },
-            { href: "/guide", label: "使い方" },
-            { href: "/terms", label: "利用規約" },
-            { href: "/privacy", label: "プライバシー" },
-            { href: "/tokusho", label: "特定商取引法" },
-          ].map(link => <a key={link.href} href={link.href}>{link.label}</a>)}
-        </div>
-        <div className="text-meta" style={{ marginTop: 10 }}>© 2026 ツクリスト</div>
-      </footer>
-    </div>
+        {/* FAQ */}
+        <section className="section" style={{ background: "var(--bg)", color: "var(--fg)" }}>
+          <div className="container-narrow">
+            <h2 className="section-title" style={{ textAlign: "center", marginBottom: 40 }}>よくある質問</h2>
+            <div style={{ display: "grid", gap: 10 }}>
+              {FAQS.map((item, i) => <FaqItem key={i} q={item.q} a={item.a} />)}
+            </div>
+          </div>
+        </section>
+
+        {/* CTA */}
+        <section className="section" style={{ textAlign: "center" }}>
+          <h2 className="section-title">今すぐ無料で始めよう</h2>
+          <p style={{ color: "var(--muted)", fontSize: 14, marginBottom: 32 }}>登録1分・クレジットカード不要</p>
+          <div className="row" style={{ gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
+            <a href="/login" className="btn btn-primary" style={{ textDecoration: "none" }}>無料アカウントを作成 →</a>
+            <a href="/demo" className="btn btn-secondary" style={{ textDecoration: "none" }}>デモを試す</a>
+          </div>
+        </section>
+
+        {/* フッター */}
+        <footer className="app-footer">
+          <div className="footer-links">
+            {[
+              { href: "/", label: "サービス紹介" },
+              { href: "/guide", label: "使い方" },
+              { href: "/terms", label: "利用規約" },
+              { href: "/privacy", label: "プライバシー" },
+              { href: "/tokusho", label: "特定商取引法" },
+            ].map(link => <a key={link.href} href={link.href}>{link.label}</a>)}
+          </div>
+          <div className="text-meta" style={{ marginTop: 10 }}>© 2026 ツクリスト</div>
+        </footer>
+      </div>
+    </>
   );
 }
 
@@ -218,5 +240,6 @@ function FaqItem({ q, a }: { q: string; a: string }) {
       </button>
       {open && <div className="faq-answer">{a}</div>}
     </div>
+
   );
 }
