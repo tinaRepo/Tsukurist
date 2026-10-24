@@ -1,12 +1,12 @@
 "use client";
 
-import { Icon } from "@/components/TaskShared";
+import BackButton from "@/components/BackButton";
 // 使い方ガイド
 export default function GuidePage() {
   return (
     <div style={{ minHeight: "100vh", background: "var(--surface)" }}>
       <header className="doc-header">
-        <button onClick={() => window.history.back()} className="doc-back-btn"><Icon name="arrowLeft" size={14} /> 戻る</button>
+        <BackButton />
         <span className="title">使い方ガイド</span>
       </header>
       <main className="container-narrow" style={{ padding: "32px 24px 80px" }}>

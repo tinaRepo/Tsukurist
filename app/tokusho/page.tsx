@@ -1,6 +1,6 @@
 "use client";
 
-import { Icon } from "@/components/TaskShared";
+import BackButton from "@/components/BackButton";
 import { SITE_URL } from "@/lib/site";
 import { SUPPORT_EMAIL } from "@/lib/site";
 // ページメタデータ
@@ -8,7 +8,7 @@ export default function TokushoPage() {
   return (
     <div style={{ minHeight: "100vh", background: "var(--surface)" }}>
       <header className="doc-header">
-        <button onClick={() => window.history.back()} className="doc-back-btn"><Icon name="arrowLeft" size={14} /> 戻る</button>
+        <BackButton />
         <span className="title">特定商取引法に基づく表記</span>
       </header>
       <main className="container-narrow" style={{ padding: "32px 24px 80px" }}>
