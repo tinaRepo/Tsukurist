@@ -1,7 +1,9 @@
-"use client";
-
+import Link from "next/link";
 import BackButton from "@/components/BackButton";
-// 使い方ガイド
+import { Icon } from "@/components/TaskShared";
+import { GUIDE_PAGES } from "@/lib/guide-pages";
+
+// 使い方ガイドのハブページ（server component）
 export default function GuidePage() {
   return (
     <div style={{ minHeight: "100vh", background: "var(--surface)" }}>
@@ -10,145 +12,28 @@ export default function GuidePage() {
         <span className="title">使い方ガイド</span>
       </header>
       <main className="container-narrow" style={{ padding: "32px 24px 80px" }}>
-
         <div style={{ textAlign: "center", marginBottom: 40 }}>
-          <div style={{ fontSize: 20, fontWeight: 600, marginBottom: 8 }}>ツクリスト</div>
-          <div className="text-muted" style={{ fontSize: 14 }}>依頼・タスクの納期を一元管理するツールです</div>
-        </div>
-
-        <Section title="はじめかた">
-          <Step num={1} title="アカウントを作成する">
-            メールアドレスとパスワードを入力して新規登録します。確認メールが届いたらリンクをクリックしてください。
-          </Step>
-          <Step num={2} title="表示名を設定する">
-            右上のユーザーメニュー →「名前を変更」から表示名を設定できます。
-          </Step>
-          <Step num={3} title="最初のタスクを登録する">
-            「＋ 新規登録」ボタンからタスク情報を入力します。件名と依頼先名は必須です。
-          </Step>
-        </Section>
-
-        <Section title="タスクの管理">
-          <Step num={1} title="タスクを登録する">
-            件名・依頼先名・SNS/連絡先・依頼日・納期・提出日・金額・ステータス・メモを入力できます。日付は後から削除できます。
-          </Step>
-          <Step num={2} title="ステータスを更新する">
-            タスクをタップ→「編集」からステータスを変更できます。
-            <div className="row" style={{ gap: 6, flexWrap: "wrap", marginTop: 8 }}>
-              {[
-                { label: "依頼済み", cls: "badge-pending" },
-                { label: "確認中", cls: "badge-checking" },
-                { label: "対応中", cls: "badge-progress" },
-                { label: "完成", cls: "badge-done" },
-                { label: "キャンセル", cls: "badge-cancelled" },
-              ].map(s => <span key={s.label} className={`badge ${s.cls}`}>{s.label}</span>)}
-            </div>
-          </Step>
-          <Step num={3} title="画像を添付する">
-            タスクの詳細画面から画像を追加できます。確認用・作業中・完成・その他の種類を選んでアップロードしてください。
-          </Step>
-          <Step num={4} title="並び替え・フィルタ">
-            タスク一覧は依頼日・納期・金額・ステータスで並び替え可能です。ステータスボタンでフィルタリングもできます。
-          </Step>
-        </Section>
-
-        <Section title="タグとカレンダー">
-          <Step num={1} title="タグで分類する">
-            タスクの登録・編集画面の「タグ」欄で、既存タグを複数選択したり、新しいタグを追加したりできます（1タスクに10個まで、全体で100個まで）。一覧上部のタグのプルダウンでは1つのタグで、詳細検索では複数のタグで絞り込めます。詳細検索の件名・依頼先名・連絡先・メモは、それぞれ部分一致で検索できます。名前の変更・削除は、ユーザーメニュー →「タグを管理」から行えます。
-          </Step>
-          <Step num={2} title="カレンダーで見る">
-            有料プランでは一覧の右上の「カレンダー」に切り替えると、納期の日にタスクが表示されます。月表示は日付をタップするとその日のタスクが、週表示は1週間ぶんが縦に並びます。ステータスや検索の絞り込みはカレンダーにも反映されます。納期が未設定のタスクは表示されません。無料プランから利用する場合は、プランをアップグレードしてください。
-          </Step>
-        </Section>
-
-        <Section title="共有ページ（プレミアム）">
-          <p>プレミアムプランでは、ユーザーメニューの「共有ページを設定」から、ログインなしで見られる専用ページを公開できます。受付状況・対応件数・完了件数・表示名・紹介文・SNSリンクは項目ごとに公開を選べます。受付可能件数は設定した受付上限から対応中件数を差し引いて表示します。タスクに添付した画像から、実績として公開する画像も選べます。</p>
-          <p>共有リンクを知っている人は誰でも閲覧できます。不要になったら公開を停止するか、共有ページを削除してください。公開されるのは選択した項目と画像だけです。タスク名、依頼先、金額、メモ、アカウント情報は公開されません。</p>
-        </Section>
-
-        <Section title="納期アラート">
-          <p>納期が7日以内に迫ったタスクは<strong>アプリ内でハイライト表示</strong>されます。</p>
-          <div style={{ background: "var(--danger-soft)", borderRadius: "var(--radius-md)", padding: "14px 16px", margin: "12px 0", fontSize: 13, color: "var(--danger)" }}>
-            <strong>あとN日</strong> と表示され、カード全体が強調されます
-          </div>
-          <p style={{ marginTop: 8 }}>アラートが表示される条件：</p>
-          <ul>
-            <li>納期まで<strong>7日以内</strong>（当日含む）</li>
-            <li>ステータスが<strong>完成・キャンセル以外</strong>のタスク</li>
-          </ul>
-        </Section>
-
-        <Section title="プッシュ通知">
-          <p>納期が近いタスクを<strong>毎朝8時（日本時間）にプッシュ通知</strong>でお知らせします。</p>
-          <div style={{ background: "var(--success-soft)", borderRadius: "var(--radius-md)", padding: "14px 16px", margin: "12px 0", fontSize: 13, color: "var(--success)" }}>
-            ホーム画面に追加したPWAでも通知が届きます（iOS 16.4以降）
-          </div>
-          <p style={{ marginTop: 8 }}>通知の設定方法：</p>
-          <Step num={1} title="通知をオンにする">
-            右上のユーザーメニュー →「通知オフ（タップでオン）」をタップして通知を許可してください。
-          </Step>
-          <Step num={2} title="通知が届くタイミング">
-            納期まで7日以内のタスクがある日に、毎朝8時（日本時間）に通知が届きます。納期当日まで毎日届きます。通知は端末ごとにオン・オフできます。
-          </Step>
-          <Step num={3} title="通知をオフにするには">
-            ユーザーメニュー →「通知オン（タップでオフ）」をタップして通知を許可してください。
-          </Step>
-          <div style={{ background: "var(--warn-soft)", borderRadius: "var(--radius-md)", padding: "14px 16px", margin: "12px 0", fontSize: 13, color: "var(--warn)" }}>
-            iOSのSafariでは、ブラウザの通知設定で「常に許可」にしていても、ホーム画面に追加したPWAでないと通知が届きません。必ず「ホーム画面に追加」してお使いください。
-          </div>
-        </Section>
-
-        <Section title="画像のプラン制限">
-          <p>プランによってアップロードできる画像の合計枚数が異なります。</p>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10, marginTop: 12 }}>
-            {[
-              { label: "無料", limit: "10枚まで" },
-              { label: "スタンダード", limit: "50枚まで" },
-              { label: "プレミアム", limit: "無制限" },
-            ].map(p => (
-              <div key={p.label} className="card" style={{ padding: 12, textAlign: "center" }}>
-                <div style={{ fontWeight: 600, fontSize: 13 }}>{p.label}</div>
-                <div className="text-muted" style={{ fontSize: 12, marginTop: 4 }}>{p.limit}</div>
-              </div>
-            ))}
-          </div>
-          <p style={{ marginTop: 12, fontSize: 13, color: "var(--muted)" }}>
-            プランのアップグレードは右上のユーザーメニュー →「プランをアップグレード」から行えます。
+          <h1 style={{ fontSize: 22, marginBottom: 8 }}>ツクリスト 使い方ガイド</h1>
+          <p className="text-muted" style={{ fontSize: 14, lineHeight: 1.8 }}>
+            依頼・外注の納期を管理するための機能を、画面の操作に沿ってテーマごとに解説しています。<br />
+            はじめての方は「はじめかた」から読むのがおすすめです。
           </p>
-        </Section>
-
-        <Section title="スマホで使う">
-          <p>SafariやChromeの「ホーム画面に追加」からアプリとして使えます。アドレスバーが非表示になり、より快適に操作できます。</p>
-        </Section>
-
-        <Section title="アカウントを削除したいとき">
-          <p>ユーザーメニュー →「アカウントを削除」から、ご自身でいつでも削除できます（メールアドレスとパスワードの入力が必要です）。タスク・タグ・画像などすべてのデータが削除され、元に戻せません。有料プランをご利用中の場合は、削除と同時に即時解約されます（残りの期間分の返金・残高クレジットはありません）。期間の終了まで使いたい場合は、先にプランを解約してください。</p>
-        </Section>
-
+        </div>
+        <div style={{ display: "grid", gap: 10 }}>
+          {GUIDE_PAGES.map(p => (
+            <Link key={p.slug} href={`/guide/${p.slug}`} className="card card-interactive row"
+              style={{ padding: "16px 18px", textDecoration: "none", gap: 12 }}>
+              <span className="grow">
+                <span style={{ display: "block", fontWeight: 600, fontSize: 15 }}>{p.title}</span>
+                <span className="text-meta" style={{ display: "block", marginTop: 4 }}>{p.summary}</span>
+              </span>
+              <span style={{ color: "var(--meta)", flexShrink: 0, display: "inline-flex" }}>
+                <Icon name="chevronRight" size={16} />
+              </span>
+            </Link>
+          ))}
+        </div>
       </main>
-    </div>
-  );
-}
-
-// 使い方ガイドのセクション
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div className="doc-section">
-      <h2>{title}</h2>
-      <div>{children}</div>
-    </div>
-  );
-}
-
-// 使い方ガイドのステップ
-function Step({ num, title, children }: { num: number; title: string; children: React.ReactNode }) {
-  return (
-    <div className="step-row">
-      <div className="step-number">{num}</div>
-      <div>
-        <div className="step-title">{title}</div>
-        <div className="step-body">{children}</div>
-      </div>
     </div>
   );
 }

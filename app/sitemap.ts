@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 import { SITE_URL } from "@/lib/seo";
+import { GUIDE_PAGES } from "@/lib/guide-pages";
 
 export default function sitemap(): MetadataRoute.Sitemap {
     const publicPages = [
@@ -10,9 +11,16 @@ export default function sitemap(): MetadataRoute.Sitemap {
         ["/tokusho", 0.3],
     ] as const;
 
-    return publicPages.map(([path, priority]) => ({
-        url: `${SITE_URL}${path}`,
-        changeFrequency: "monthly",
-        priority,
-    }));
+    return [
+        ...publicPages.map(([path, priority]) => ({
+            url: `${SITE_URL}${path}`,
+            changeFrequency: "monthly" as const,
+            priority,
+        })),
+        ...GUIDE_PAGES.map(p => ({
+            url: `${SITE_URL}/guide/${p.slug}`,
+            changeFrequency: "monthly" as const,
+            priority: 0.6,
+        })),
+    ];
 }
