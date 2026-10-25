@@ -44,3 +44,13 @@ export function Note({ tone = "info", children }: { tone?: "info" | "warn"; chil
     </div>
   );
 }
+
+// 長い説明を折りたたむ（本文はHTMLに残るので、検索エンジンからは読める）
+export function Fold({ title = "詳しく読む", children }: { title?: string; children: ReactNode }) {
+  return (
+    <details style={{ margin: "4px 0 12px" }}>
+      <summary style={{ cursor: "pointer", color: "var(--accent)", fontWeight: 600, fontSize: 14, padding: "8px 0" }}>{title}</summary>
+      <div style={{ paddingTop: 8 }}>{children}</div>
+    </details>
+  );
+}
