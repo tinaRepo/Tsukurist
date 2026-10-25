@@ -80,6 +80,7 @@ export default function LandingPage() {
           <span style={{ fontWeight: 600, fontSize: 16, letterSpacing: "-0.01em" }}>ツクリスト</span>
           <div className="row" style={{ gap: 16 }}>
             <a href="/guide" style={{ color: "var(--fg-2)", fontSize: 13, textDecoration: "none", fontWeight: 600 }}>使い方</a>
+            <a href="/tools" style={{ color: "var(--fg-2)", fontSize: 13, textDecoration: "none", fontWeight: 600 }}>無料ツール</a>
             <a href="/login" style={{ color: "var(--fg-2)", fontSize: 13, textDecoration: "none", fontWeight: 600 }}>ログイン</a>
             <a href="/login" className="btn btn-primary btn-sm" style={{ textDecoration: "none" }}>無料で始める</a>
           </div>
@@ -222,6 +223,7 @@ export default function LandingPage() {
             {[
               { href: "/", label: "サービス紹介" },
               { href: "/guide", label: "使い方" },
+              { href: "/tools", label: "無料ツール" },
               { href: "/terms", label: "利用規約" },
               { href: "/privacy", label: "プライバシー" },
               { href: "/tokusho", label: "特定商取引法" },

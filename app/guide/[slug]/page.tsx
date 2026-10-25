@@ -1,8 +1,10 @@
+import { Children, Fragment, isValidElement, type ReactElement, type ReactNode } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import BackButton from "@/components/BackButton";
 import { Icon } from "@/components/TaskShared";
+import { Section, Toc, InlineCta } from "@/components/GuideParts";
 import { createPublicPageMetadata, SITE_URL } from "@/lib/seo";
 import { GUIDE_PAGES, getGuidePage } from "@/lib/guide-pages";
 
@@ -16,13 +18,35 @@ export function generateMetadata({ params }: { params: { slug: string } }): Meta
   return createPublicPageMetadata(page.title, page.description, `/guide/${page.slug}`);
 }
 
+// 本文の要素ツリーから <Section title="..."> を集めて目次にする
+function sectionTitles(node: ReactNode): string[] {
+  const titles: string[] = [];
+  Children.forEach(node, child => {
+    if (!isValidElement(child)) return;
+    const el = child as ReactElement<{ title?: string; children?: ReactNode }>;
+    if (el.type === Section) {
+      if (el.props.title) titles.push(el.props.title);
+      return;
+    }
+    titles.push(...sectionTitles(el.props.children));
+  });
+  return titles;
+}
+
 export default function GuideDetailPage({ params }: { params: { slug: string } }) {
   const index = GUIDE_PAGES.findIndex(p => p.slug === params.slug);
   if (index < 0) notFound();
   const page = GUIDE_PAGES[index];
   const prev = GUIDE_PAGES[index - 1];
   const next = GUIDE_PAGES[index + 1];
-  const related = page.related.map(getGuidePage).filter((p): p is NonNullable<typeof p> => !!p);
+  const related = page.related.flatMap(r => {
+    const target = getGuidePage(r.slug);
+    return target ? [{ ...target, reason: r.reason }] : [];
+  });
+
+  // 本文の真ん中に「デモを試す」を挟む（セクションが4つ以上あるページのみ）
+  const parts = Children.toArray((page.body as ReactElement<{ children?: ReactNode }>).props.children);
+  const mid = parts.length >= 4 ? Math.ceil(parts.length / 2) : -1;
 
   const breadcrumb = {
     "@context": "https://schema.org",
@@ -47,18 +71,26 @@ export default function GuideDetailPage({ params }: { params: { slug: string } }
           <Link href="/guide" style={{ color: "var(--accent)" }}>使い方ガイド</Link>
         </nav>
 
-        <h1 style={{ fontSize: 24, lineHeight: 1.4, marginBottom: 28 }}>{page.title}</h1>
-        <article>{page.body}</article>
+        <h1 style={{ fontSize: 24, lineHeight: 1.4, marginBottom: 20 }}>{page.title}</h1>
+        <Toc titles={sectionTitles(page.body)} />
+        <article>
+          {parts.map((part, i) => (
+            <Fragment key={i}>
+              {part}
+              {i + 1 === mid && <InlineCta />}
+            </Fragment>
+          ))}
+        </article>
 
         {related.length > 0 && (
           <section style={{ marginTop: 48 }}>
-            <h2 style={{ fontSize: 17, marginBottom: 12 }}>あわせて読みたい</h2>
+            <h2 style={{ fontSize: 17, marginBottom: 12 }}>次に読むなら</h2>
             <div style={{ display: "grid", gap: 8 }}>
               {related.map(r => (
                 <Link key={r.slug} href={`/guide/${r.slug}`} className="card card-interactive"
                   style={{ padding: "12px 16px", textDecoration: "none", display: "block" }}>
-                  <span style={{ display: "block", fontWeight: 600, fontSize: 14 }}>{r.title}</span>
-                  <span className="text-meta" style={{ display: "block", marginTop: 2 }}>{r.summary}</span>
+                  <span style={{ display: "block", fontSize: 12, color: "var(--accent)", fontWeight: 600 }}>{r.reason}</span>
+                  <span style={{ display: "block", fontWeight: 600, fontSize: 14, marginTop: 2 }}>{r.title}</span>
                 </Link>
               ))}
             </div>
@@ -78,7 +110,8 @@ export default function GuideDetailPage({ params }: { params: { slug: string } }
           ) : <span />}
         </nav>
 
-        <div style={{ textAlign: "center", marginTop: 40 }}>
+        <div className="row" style={{ justifyContent: "center", gap: 12, flexWrap: "wrap", marginTop: 40 }}>
+          <Link href="/demo" className="btn btn-secondary" style={{ textDecoration: "none" }}>デモを試す</Link>
           <Link href="/login" className="btn btn-primary" style={{ textDecoration: "none" }}>無料で始める</Link>
         </div>
       </main>

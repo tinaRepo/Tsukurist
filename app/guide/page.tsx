@@ -33,6 +33,9 @@ export default function GuidePage() {
             </Link>
           ))}
         </div>
+        <p style={{ textAlign: "center", marginTop: 28, fontSize: 14 }}>
+          <Link href="/tools" style={{ color: "var(--accent)", fontWeight: 600 }}>納期の逆算・外注費の計算ができる無料ツールもあります</Link>
+        </p>
       </main>
     </div>
   );

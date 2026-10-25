@@ -4,9 +4,10 @@ import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 
 // ============================================================
-// Google AdSense の読み込みを「公開コンテンツページ」だけに限定する。
-// ログイン後のアプリ・ログイン画面・エラー/メンテナンス画面など、公開コンテンツの無い画面に
-// 広告を出すのはAdSenseポリシー上のリスクになるため。
+// Google AdSense の読み込みを「独自のコンテンツがある公開ページ」だけに限定する。
+// ログイン後のアプリ・ログイン画面・エラー/メンテナンス画面に加え、
+// 規約・プライバシー・特商法のような定型文だけのページにも広告は出さない
+// （「公開コンテンツのない画面への広告」はAdSenseポリシー上のリスクになるため）。
 //
 // - 所有確認用の <meta name="google-adsense-account"> は app/layout.tsx で全ページに出している
 //   （広告は読み込まない。サイト所有の確認専用）
@@ -17,14 +18,19 @@ import { usePathname } from "next/navigation";
 
 const ADSENSE_CLIENT = "ca-pub-4461599437148086";
 
-// 広告を表示してよい公開ページ。/pricing はログインが必要なため含めない
-export const AD_ALLOWED_PATHS = ["/", "/guide", "/terms", "/privacy", "/tokusho"];
+// 広告を表示してよい公開ページ（完全一致）。/pricing はログインが必要なため含めない
+export const AD_ALLOWED_PATHS = ["/", "/guide", "/tools"];
+// 広告を表示してよい公開ページ（前方一致）。使い方ガイド・無料ツールの各ページ
+export const AD_ALLOWED_PREFIXES = ["/guide/", "/tools/"];
+
+const isAdAllowed = (pathname: string) =>
+  AD_ALLOWED_PATHS.includes(pathname) || AD_ALLOWED_PREFIXES.some(prefix => pathname.startsWith(prefix));
 
 export default function AdSenseLoader() {
   const pathname = usePathname();
 
   useEffect(() => {
-    if (!AD_ALLOWED_PATHS.includes(pathname)) return;
+    if (!isAdAllowed(pathname)) return;
     const robots = document.querySelector('meta[name="robots"]')?.getAttribute("content");
     if (pathname === "/" && robots?.split(",").some(value => value.trim() === "noindex")) return;
 

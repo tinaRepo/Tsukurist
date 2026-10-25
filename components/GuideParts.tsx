@@ -1,10 +1,11 @@
+import Image from "next/image";
 import type { ReactNode } from "react";
 
 // ガイドページ共通の部品（server componentで使える。"use client"は不要）
 
 export function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <div className="doc-section">
+    <div className="doc-section" id={title} style={{ scrollMarginTop: 16 }}>
       <h2>{title}</h2>
       <div>{children}</div>
     </div>
@@ -52,5 +53,46 @@ export function Fold({ title = "詳しく読む", children }: { title?: string; 
       <summary style={{ cursor: "pointer", color: "var(--accent)", fontWeight: 600, fontSize: 14, padding: "8px 0" }}>{title}</summary>
       <div style={{ paddingTop: 8 }}>{children}</div>
     </details>
+  );
+}
+
+// ページ冒頭の目次（Sectionのtitleをidにしているので、そのままアンカーになる）
+export function Toc({ titles }: { titles: string[] }) {
+  if (titles.length < 3) return null;
+  return (
+    <nav aria-label="このページの内容" className="card" style={{ padding: "14px 18px", marginBottom: 28 }}>
+      <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 8 }}>このページの内容</div>
+      <ul style={{ display: "grid", gap: 6, listStyle: "none" }}>
+        {titles.map(t => (
+          <li key={t} style={{ fontSize: 14 }}>
+            <a href={`#${encodeURIComponent(t)}`} style={{ color: "var(--accent)", textDecoration: "none" }}>{t}</a>
+          </li>
+        ))}
+      </ul>
+    </nav>
+  );
+}
+
+// ページ途中に挟む「デモで試す」誘導
+export function InlineCta() {
+  return (
+    <div className="card row" style={{ padding: "14px 18px", gap: 12, justifyContent: "space-between", flexWrap: "wrap", margin: "8px 0 32px" }}>
+      <span style={{ fontSize: 14, fontWeight: 600, lineHeight: 1.6 }}>読むより触るほうが早いときは、登録なしのデモをどうぞ。</span>
+      <a href="/demo" className="btn btn-secondary btn-sm" style={{ textDecoration: "none" }}>デモを試す</a>
+    </div>
+  );
+}
+
+// 実際のスクリーンショット・操作GIF用。画像は public/guide/ に置き、src="/guide/xxx.png" のように指定する
+export function Shot({ src, alt, width, height, caption }: {
+  src: string; alt: string; width: number; height: number; caption?: string;
+}) {
+  return (
+    <figure style={{ margin: "0 0 16px" }}>
+      <Image src={src} alt={alt} width={width} height={height} sizes="(max-width: 720px) 100vw, 672px"
+        unoptimized={src.endsWith(".gif")}
+        style={{ width: "100%", height: "auto", borderRadius: "var(--radius-md)", border: "1px solid var(--border-soft)" }} />
+      {caption && <figcaption className="text-meta" style={{ marginTop: 8, lineHeight: 1.7 }}>{caption}</figcaption>}
+    </figure>
   );
 }

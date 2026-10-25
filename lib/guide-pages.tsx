@@ -17,7 +17,7 @@ export type GuidePage = {
   title: string;        // <title> と h1
   description: string;  // meta description
   summary: string;      // 一覧・前後リンク用の短い説明
-  related: string[];    // 関連ガイドのslug
+  related: { slug: string; reason: string }[];  // 関連ガイドと、読む理由（一覧に表示）
   body: ReactNode;
 };
 
@@ -28,7 +28,7 @@ export const GUIDE_PAGES: GuidePage[] = [
     title: "はじめかた：登録から最初のタスク登録まで",
     description: "ツクリストのアカウント作成、画面の見かた、最初のタスクを登録して納期管理を始めるまでの流れを、実際の画面に沿って紹介します。",
     summary: "アカウント作成と最初のタスク登録",
-    related: ["tasks-and-status", "notifications"],
+    related: [{ slug: "tasks-and-status", reason: "登録したあと、ステータスをどう使い分けるか" }, { slug: "notifications", reason: "納期を見逃さないための通知を設定する" }],
     body: (
       <>
         <Section title="登録せずにデモで試す">
@@ -100,7 +100,7 @@ export const GUIDE_PAGES: GuidePage[] = [
     title: "タスクの登録とステータスの使い分け方",
     description: "依頼・外注の納期管理で迷いやすい5つのステータス（依頼済み・確認中・対応中・完成・キャンセル）の使い分けと、登録フォームの各項目の使い方を具体例つきで解説します。",
     summary: "5つのステータスの使い分けと登録のコツ",
-    related: ["tags-and-calendar", "notifications"],
+    related: [{ slug: "tags-and-calendar", reason: "タスクが増えたら、タグと検索で整理する" }, { slug: "notifications", reason: "納期が近づいたときの知らせ方を確認する" }],
     body: (
       <>
         <Section title="登録フォームの項目">
@@ -197,7 +197,7 @@ export const GUIDE_PAGES: GuidePage[] = [
     title: "タグ・検索・カレンダーで依頼を整理する",
     description: "タグでの分類、ステータスや詳細検索での絞り込み、合計金額の確認、納期をカレンダー（月・週）で見る方法を、画面の操作に沿って解説します。",
     summary: "タグ・詳細検索・カレンダー表示",
-    related: ["tasks-and-status", "plans-and-billing"],
+    related: [{ slug: "tasks-and-status", reason: "ステータスの使い分けを見直す" }, { slug: "plans-and-billing", reason: "カレンダーが使えるプランを確認する" }],
     body: (
       <>
         <Section title="タグで分類する">
@@ -278,7 +278,7 @@ export const GUIDE_PAGES: GuidePage[] = [
     title: "確認用画像の添付と枚数制限",
     description: "確認用・作業中・完成・その他の4種類の画像を添付する方法、ダウンロードと削除、対応形式、プランごとの枚数制限（10枚・50枚・無制限）を解説します。",
     summary: "画像の種類・アップロード・枚数制限",
-    related: ["plans-and-billing", "share-page"],
+    related: [{ slug: "plans-and-billing", reason: "画像の上限を増やしたいとき" }, { slug: "share-page", reason: "画像を実績として公開する方法" }],
     body: (
       <>
         <Section title="画像を添付する場面">
@@ -354,7 +354,7 @@ export const GUIDE_PAGES: GuidePage[] = [
     title: "納期アラートとプッシュ通知の設定",
     description: "納期7日前のハイライト、毎朝8時（日本時間）のプッシュ通知の設定と止め方、iPhoneで通知が届かないときの対処、アプリ内のお知らせの見かたを解説します。",
     summary: "アラートとプッシュ通知の設定",
-    related: ["pwa-and-offline", "tasks-and-status"],
+    related: [{ slug: "pwa-and-offline", reason: "iPhoneで通知を受けるための準備（ホーム画面に追加）" }, { slug: "tasks-and-status", reason: "通知の対象になるステータスを確認する" }],
     body: (
       <>
         <Section title="画面上の納期アラート">
@@ -437,7 +437,7 @@ export const GUIDE_PAGES: GuidePage[] = [
     title: "ホーム画面への追加とオフライン利用",
     description: "ツクリストをスマホのホーム画面に追加してアプリのように使う方法と、電波が届かない場所でもタスクを確認・編集できるオフライン機能の仕組みと制限を解説します。",
     summary: "ホーム画面に追加・オフライン利用",
-    related: ["notifications", "images"],
+    related: [{ slug: "notifications", reason: "通知を受け取る設定" }, { slug: "images", reason: "オフラインではできない画像の操作" }],
     body: (
       <>
         <Section title="ホーム画面に追加する">
@@ -502,7 +502,7 @@ export const GUIDE_PAGES: GuidePage[] = [
     title: "共有ページ（プレミアム）の使い方",
     description: "受付状況・対応件数・プロフィール・実績画像をログインなしで公開できる共有ページの設定手順と、公開される情報・されない情報、リンクの再発行や削除の方法を解説します。",
     summary: "公開項目の選び方と注意点",
-    related: ["images", "plans-and-billing"],
+    related: [{ slug: "images", reason: "実績に使う画像の管理" }, { slug: "plans-and-billing", reason: "プレミアムプランの内容と料金" }],
     body: (
       <>
         <Section title="共有ページとは">
@@ -588,7 +588,7 @@ export const GUIDE_PAGES: GuidePage[] = [
     title: "プランの違いと課金・解約について",
     description: "無料・スタンダード（月額300円）・プレミアム（月額800円）の違い、アップグレード時の日割り請求、解約のタイミング、支払いに失敗したときの対処を解説します。",
     summary: "プラン比較・アップグレード・解約",
-    related: ["images", "account-and-security"],
+    related: [{ slug: "images", reason: "画像の枚数制限をくわしく見る" }, { slug: "account-and-security", reason: "アカウントを削除する前に確認すること" }],
     body: (
       <>
         <Section title="3つのプランの違い">
@@ -672,7 +672,7 @@ export const GUIDE_PAGES: GuidePage[] = [
     title: "パスワード・Google連携・アカウント削除",
     description: "パスワードの設定と変更、Googleアカウントとの連携と解除、表示名の変更、ログアウトの注意点、アカウント削除の手順と削除されるデータを解説します。",
     summary: "ログイン方法とアカウント管理",
-    related: ["plans-and-billing", "getting-started"],
+    related: [{ slug: "plans-and-billing", reason: "有料プランの解約と支払い" }, { slug: "getting-started", reason: "はじめかたに戻る" }],
     body: (
       <>
         <Section title="ログイン方法を整える">
