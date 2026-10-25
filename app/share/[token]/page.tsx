@@ -1,14 +1,19 @@
 import { getPublicShareData, type PublicShareData } from "@/lib/server/public-share";
+import { flushLogs, getLogger } from "@/lib/server/logger";
 import Image from "next/image";
 
 export const dynamic = "force-dynamic";
+
+const log = getLogger("page.share");
 
 export default async function PublicSharePage({ params }: { params: { token: string } }) {
   let data: PublicShareData | null;
   try {
     data = await getPublicShareData(params.token);
   } catch (error) {
-    console.error("public share page load failed", error);
+    // ページ描画は withRequestLog を使えないため、ここで直接記録して書き切る（トークンは記録しない）
+    log.error("public share page load failed", error);
+    await flushLogs();
     return <UnavailablePage />;
   }
 

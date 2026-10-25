@@ -3,10 +3,12 @@ import { Resend } from "resend";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { accountDeletionRequestEmail, getSupportEmail, getSupportFrom } from "@/lib/email-templates";
+import { getLogger, putContext, withRequestLog } from "@/lib/server/logger";
 
+const log = getLogger("api.request-delete");
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-export async function POST(request: NextRequest) {
+export const POST = withRequestLog("api.request-delete", async (request: NextRequest) => {
   try {
     // トークンで呼び出し元を特定
     const authHeader = request.headers.get("authorization") ?? "";
@@ -25,6 +27,7 @@ export async function POST(request: NextRequest) {
     if (userErr || !user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    putContext({ userId: user.id });
 
     // レート制限: 1ユーザーあたり1日3回まで（管理者宛メールの連投防止）。
     // 判定に失敗した場合は安全側に倒して拒否する。
@@ -34,10 +37,11 @@ export async function POST(request: NextRequest) {
       p_window_seconds: 86400,
     });
     if (rlErr) {
-      console.error("rate limit check failed:", rlErr);
+      log.error("rate limit check failed", rlErr);
       return NextResponse.json({ error: "現在送信できません。しばらくしてからお試しください。" }, { status: 503 });
     }
     if (allowed !== true) {
+      log.warn("deletion request rate limit exceeded");
       return NextResponse.json({ error: "申請の回数が上限に達しました。時間をおいてお試しください。" }, { status: 429 });
     }
 
@@ -69,9 +73,10 @@ export async function POST(request: NextRequest) {
 
     if (mailErr) throw mailErr;
 
+    log.info("account deletion request sent to admin");
     return NextResponse.json({ success: true });
   } catch (e: any) {
-    console.error("request-delete error:", e);
+    log.error("request-delete error", e);
     return NextResponse.json({ error: "送信に失敗しました" }, { status: 500 });
   }
-}
+});

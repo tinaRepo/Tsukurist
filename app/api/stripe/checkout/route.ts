@@ -2,10 +2,12 @@ import Stripe from "stripe";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { createAdminClient, getUserFromRequest } from "@/lib/server/admin";
+import { getLogger, putContext, withRequestLog } from "@/lib/server/logger";
 
+const log = getLogger("stripe.checkout");
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
-export async function POST(request: NextRequest) {
+export const POST = withRequestLog("stripe.checkout", async (request: NextRequest) => {
   try {
     const { priceId } = await request.json();
     if (!priceId || typeof priceId !== "string") {
@@ -18,6 +20,7 @@ export async function POST(request: NextRequest) {
       process.env.STRIPE_PREMIUM_PRICE_ID,
     ].filter((id): id is string => !!id);
     if (!allowedPriceIds.includes(priceId)) {
+      log.warn("invalid priceId rejected", { priceId });
       return NextResponse.json({ error: "invalid priceId" }, { status: 400 });
     }
 
@@ -25,6 +28,7 @@ export async function POST(request: NextRequest) {
     const admin = createAdminClient();
     const user = await getUserFromRequest(request, admin);
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    putContext({ userId: user.id });
 
     // 既存のstripe_customer_idを取得
     const { data: profile } = await admin
@@ -75,9 +79,10 @@ export async function POST(request: NextRequest) {
       customerLinkPromise ?? Promise.resolve(),
     ]);
 
+    log.info("checkout session created", { sessionId: session.id, priceId });
     return NextResponse.json({ url: session.url });
   } catch (e: any) {
-    console.error("checkout error:", e);
+    log.error("checkout error", e);
     return NextResponse.json({ error: "エラーが発生しました" }, { status: 500 });
   }
-}
+});

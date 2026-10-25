@@ -10,7 +10,7 @@ export default function PrivacyPage() {
         <span className="title">プライバシーポリシー</span>
       </header>
       <main className="container-narrow" style={{ padding: "32px 24px 80px" }}>
-        <p className="text-meta" style={{ marginBottom: 24 }}>最終更新日：2026年10月16日</p>
+        <p className="text-meta" style={{ marginBottom: 24 }}>最終更新日：2026年11月01日</p>
 
         <Section title="1. 取得する情報">
           <p>本サービス（ツクリスト）では以下の情報を取得します。</p>
@@ -25,6 +25,7 @@ export default function PrivacyPage() {
             <li>アップロード画像</li>
             <li>プッシュ通知の購読情報（通知を有効にした端末のブラウザが発行する送信先URLと暗号鍵）</li>
             <li>お問い合わせの内容（お名前・メールアドレス・件名・本文）</li>
+            <li>サービスの動作記録（アプリケーションログ：リクエストの種類・処理結果・エラー内容・ユーザーID・日時など。パスワード、お問い合わせ本文等は含みません）</li>
             <li>利用ログ・端末情報・Cookie等の識別子（アクセス解析・広告配信に関するもの。詳細は「3」「4」に記載）</li>
           </ul>
         </Section>
@@ -36,6 +37,7 @@ export default function PrivacyPage() {
             <li>ユーザーへの連絡・サポート対応</li>
             <li>有料プランの課金・請求処理</li>
             <li>サービスの改善・新機能の開発、利用状況の分析</li>
+            <li>障害・不具合の調査、セキュリティの確保（アプリケーションログの利用を含む）</li>
             <li>管理者によるアカウント管理・お問い合わせ対応</li>
             <li>広告の配信（無料で提供するための収益化）</li>
             <li>利用規約違反・不正利用への対応</li>
@@ -107,8 +109,8 @@ export default function PrivacyPage() {
         <Section title="5. 利用する外部サービス（業務の委託先）">
           <p>本サービスは以下の外部サービスを利用しており、各サービスのプライバシーポリシーが適用されます。</p>
           <ul>
-            <li>Supabase（データベース・認証・ファイル保存）</li>
-            <li>Vercel（ホスティング・アクセス解析）</li>
+            <li>Supabase（データベース・認証・ファイル保存・アプリケーションログの保存）</li>
+            <li>Vercel（ホスティング・アクセス解析・実行ログ）</li>
             <li>Stripe（決済処理。カード情報は当サービスのサーバーには保存されません）</li>
             <li>Resend（メール送信）</li>
             <li>Google（Googleアカウントでのログイン、Google Analytics、Google AdSense）</li>
@@ -137,6 +139,7 @@ export default function PrivacyPage() {
 
         <Section title="8. データの保存期間">
           <p>ユーザーデータはアカウント削除まで保持されます。アカウント削除後は、登録データ・アップロード画像・通知の宛先情報を速やかに削除し、有料プランをご利用中の場合は契約も解約します。</p>
+          <p>アプリケーションログは、障害調査・セキュリティ確保のために保存し、通常の動作記録は14日、警告・エラーの記録は90日を目安に自動で削除します。ログにはユーザーIDが含まれる場合があり、アカウント削除後も上記の期間は残ることがあります。</p>
           <p>決済に関する記録は、法令に基づき決済事業者（Stripe）が保管する場合があります。</p>
         </Section>
 

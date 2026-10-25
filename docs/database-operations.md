@@ -41,6 +41,18 @@ grant select, insert, update, delete on public.example to authenticated;
 
 Supabase Dashboardの **Authentication → Multi-Factor Authentication** でTOTPを有効にしてください。管理者画面をデプロイする前に、検証環境でこのmigrationを適用して管理者のTOTP設定、AAL1での管理操作拒否、AAL2での操作、最終更新日時の反映を確認し、本番にも同じmigrationを適用してください。
 
+## アプリログ（app_logs）
+
+`20261024000000_V2.0.1_app_logs.sql` は、サーバー側ロガー（`lib/server/logger.ts`）の保存先 `public.app_logs` と、保持期間を過ぎたログを削除する `public.purge_app_logs()` を作成します。**ロガーを含むコードをデプロイする前に**、検証環境→本番の順で適用してください。未適用でもアプリは動作しますが、ログがDBに保存されず、Vercelのログに `logger: failed to persist logs` と出力されます。
+
+```sql
+select to_regclass('public.app_logs');                 -- null ならmigration未適用
+select public.purge_app_logs(14, 90);                  -- 手動削除（service_roleのみ実行可）
+select pg_size_pretty(pg_total_relation_size('public.app_logs'));  -- 使用容量
+```
+
+テーブルは `service_role` 専用で、削除は毎日のCron（`/api/cron/deadline-notify`）が実行します。保持期間・環境変数・調査用SQLは[ログ運用ガイド](./logging-guide.md)を参照してください。
+
 ## Stripe Webhookの確認
 
 Webhookの冪等性テーブル `public.stripe_events` は `20261006000000_V2.0.0_features.sql` で作成されます。Vercelが接続するSupabaseプロジェクトにこのmigrationが適用されていることを確認してください。
@@ -49,7 +61,7 @@ Webhookの冪等性テーブル `public.stripe_events` は `20261006000000_V2.0.
 select to_regclass('public.stripe_events');
 ```
 
-結果が `null` ならmigration未適用です。Stripe Dashboardの **Developers → Webhooks → 対象endpoint → Event deliveries** で配信結果を確認し、同時刻のVercel Function Logsも照合してください。Webhook署名の検証に失敗するとDB登録前に終了します。また、処理失敗時は再配信できるよう `stripe_events` の記録を削除するため、テーブルが空であることだけでは原因を特定できません。テスト環境と本番環境でWebhook endpoint secret・Stripe API key・Price IDを混在させないでください。
+結果が `null` ならmigration未適用です。Stripe Dashboardの **Developers → Webhooks → 対象endpoint → Event deliveries** で配信結果を確認し、同時刻のVercel Function Logsまたは `app_logs`（`logger = 'stripe.webhook'`）も照合してください。Webhook署名の検証に失敗するとDB登録前に終了します。また、処理失敗時は再配信できるよう `stripe_events` の記録を削除するため、テーブルが空であることだけでは原因を特定できません。テスト環境と本番環境でWebhook endpoint secret・Stripe API key・Price IDを混在させないでください。
 
 ## Storageデータ移行
 

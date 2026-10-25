@@ -9,7 +9,9 @@ import {
   getSupportEmail,
   getSupportFrom,
 } from "@/lib/email-templates";
+import { getLogger, putContext, withRequestLog } from "@/lib/server/logger";
 
+const log = getLogger("api.contact");
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 // 入力の最大長
@@ -21,7 +23,8 @@ const MAX = { name: 100, email: 254, subject: 200, body: 5000 } as const;
 //   - 自動返信は「ログイン済みで、トークンから確認できたメールアドレス」にのみ送る
 //     （クライアントが送ってきたメールアドレス宛には送らない）
 //   - 入力長の上限、件名の改行除去
-export async function POST(req: NextRequest) {
+// ※ お問い合わせの氏名・メールアドレス・本文はログに残さない（個人情報）
+export const POST = withRequestLog("api.contact", async (req: NextRequest) => {
   try {
     const payload = await req.json().catch(() => null);
     if (!payload || typeof payload !== "object") {
@@ -58,6 +61,7 @@ export async function POST(req: NextRequest) {
       if (data?.user) {
         verifiedUserId = data.user.id;
         verifiedEmail = data.user.email ?? null;
+        putContext({ userId: verifiedUserId });
       }
     }
 
@@ -78,10 +82,11 @@ export async function POST(req: NextRequest) {
         p_key: key, p_limit: limit, p_window_seconds: windowSec,
       });
       if (rlErr) {
-        console.error("rate limit check failed:", rlErr);
+        log.error("rate limit check failed", rlErr);
         return NextResponse.json({ error: "現在送信できません。しばらくしてからお試しください。" }, { status: 503 });
       }
       if (allowed !== true) {
+        log.warn("contact rate limit exceeded", { key });
         return NextResponse.json({ error: "送信回数が上限に達しました。時間をおいてお試しください。" }, { status: 429 });
       }
     }
@@ -106,9 +111,10 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    log.info("contact message sent", { authenticated: !!verifiedUserId, receiptSent: !!verifiedEmail });
     return NextResponse.json({ ok: true });
   } catch (e: any) {
-    console.error("contact route error:", e);
+    log.error("contact route error", e);
     return NextResponse.json({ error: "メール送信に失敗しました" }, { status: 500 });
   }
-}
+});

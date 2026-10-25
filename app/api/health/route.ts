@@ -2,9 +2,12 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { createAdminClient, isCronAuthorized } from "@/lib/server/admin";
+import { getLogger, withRequestLog } from "@/lib/server/logger";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
+
+const log = getLogger("api.health");
 
 // Cronが正常に動いているとみなす最大間隔（毎日実行 + 2時間の余裕）
 const CRON_MAX_AGE_MINUTES = 1560;
@@ -13,7 +16,8 @@ const CRON_MAX_AGE_MINUTES = 1560;
 //   GET /api/health            : アプリとDBに到達できれば200（認証不要。詳細は返さない）
 //   GET /api/health?deep=1     : 加えてCronの最終成功時刻を確認する（Authorization: Bearer <CRON_SECRET> が必要）
 //                                最終成功が古い・失敗している場合は503 → 監視側でアラートにする
-export async function GET(request: NextRequest) {
+// 監視から高頻度に呼ばれるため、正常時の終了ログは DEBUG（quiet）。異常時(4xx/5xx)は WARN/ERROR で残る。
+export const GET = withRequestLog("api.health", async (request: NextRequest) => {
   const deep = request.nextUrl.searchParams.get("deep") === "1";
 
   // --- DBへの到達性（匿名キーで公開テーブルを1行読む） ---
@@ -24,7 +28,7 @@ export async function GET(request: NextRequest) {
   );
   const { error: dbError } = await anon.from("app_settings").select("setting_key").limit(1);
   if (dbError) {
-    console.error("health: db check failed:", dbError.message);
+    log.error("db check failed", dbError);
     return NextResponse.json({ ok: false }, { status: 503, headers: { "Cache-Control": "no-store" } });
   }
 
@@ -47,15 +51,16 @@ export async function GET(request: NextRequest) {
     .maybeSingle();
 
   if (error) {
-    console.error("health: job_runs query failed:", error.message);
+    log.error("job_runs query failed", error);
     return NextResponse.json({ ok: false, error: "job_runs" }, { status: 503, headers: { "Cache-Control": "no-store" } });
   }
 
   const ageMinutes = lastRun ? Math.round((Date.now() - new Date(lastRun.started_at).getTime()) / 60000) : null;
   const cronOk = ageMinutes !== null && ageMinutes <= CRON_MAX_AGE_MINUTES;
+  if (!cronOk) log.error("cron last success is too old or missing", { ageMinutes, maxAgeMinutes: CRON_MAX_AGE_MINUTES });
 
   return NextResponse.json(
     { ok: cronOk, db: true, cron: { lastSuccessAgeMinutes: ageMinutes, maxAgeMinutes: CRON_MAX_AGE_MINUTES, last: lastRun } },
     { status: cronOk ? 200 : 503, headers: { "Cache-Control": "no-store" } }
   );
-}
+}, { quiet: true });

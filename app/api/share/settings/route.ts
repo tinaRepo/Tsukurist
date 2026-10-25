@@ -1,5 +1,6 @@
 import { randomBytes } from "crypto";
 import { createAdminClient } from "@/lib/server/admin";
+import { getLogger, putContext, withRequestLog } from "@/lib/server/logger";
 import { NextRequest, NextResponse } from "next/server";
 
 export const runtime = "nodejs";
@@ -7,6 +8,7 @@ export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
 export const revalidate = 0;
 
+const log = getLogger("api.share.settings");
 const PRIVATE_HEADERS = { "Cache-Control": "no-store, private" };
 const SETTINGS_COLUMNS = "share_token, enabled, show_accepting_status, accepting_requests, show_active_count, show_completed_count, show_capacity, capacity, show_display_name, display_name, show_bio, bio, show_social_link, social_link, social_links, show_portfolio";
 const DEFAULT_SETTINGS = {
@@ -38,6 +40,7 @@ async function getAuthorizedUser(request: NextRequest) {
   const admin = createAdminClient();
   const { data, error } = await admin.auth.getUser(token);
   if (error || !data.user) return null;
+  putContext({ userId: data.user.id });
   return { admin, user: data.user };
 }
 
@@ -51,7 +54,7 @@ async function requirePremium(request: NextRequest) {
     .eq("id", auth.user.id)
     .maybeSingle();
   if (error) {
-    console.error("share settings: failed to load plan", error);
+    log.error("failed to load plan", error);
     return { error: response({ error: "共有設定を確認できませんでした" }, 500) } as const;
   }
   if (profile?.plan !== "premium") {
@@ -60,10 +63,10 @@ async function requirePremium(request: NextRequest) {
   return { admin: auth.admin, user: auth.user } as const;
 }
 
-export async function GET(request: NextRequest) {
+export const GET = withRequestLog("api.share.settings", async (request: NextRequest) => {
   try {
     const auth = await requirePremium(request);
-    if ("error" in auth) return auth.error;
+    if ("error" in auth && auth.error) return auth.error;
 
     const { data, error } = await auth.admin
       .from("public_share_pages")
@@ -73,11 +76,11 @@ export async function GET(request: NextRequest) {
     if (error) throw error;
     const settings = data
       ? {
-          ...data,
-          social_links: Array.isArray(data.social_links)
-            ? data.social_links
-            : data.social_link ? [data.social_link] : [],
-        }
+        ...data,
+        social_links: Array.isArray(data.social_links)
+          ? data.social_links
+          : data.social_link ? [data.social_link] : [],
+      }
       : null;
 
     const { data: selectedGallery, error: galleryError } = await auth.admin
@@ -142,15 +145,15 @@ export async function GET(request: NextRequest) {
       hasMoreImages: (images ?? []).length > pageSize,
     });
   } catch (error) {
-    console.error("share settings GET failed", error);
+    log.error("share settings GET failed", error);
     return response({ error: "共有設定を読み込めませんでした" }, 500);
   }
-}
+});
 
-export async function POST(request: NextRequest) {
+export const POST = withRequestLog("api.share.settings", async (request: NextRequest) => {
   try {
     const auth = await requirePremium(request);
-    if ("error" in auth) return auth.error;
+    if ("error" in auth && auth.error) return auth.error;
 
     const payload = await request.json().catch(() => null);
     if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
@@ -175,6 +178,7 @@ export async function POST(request: NextRequest) {
         .select(SETTINGS_COLUMNS)
         .single();
       if (error) throw error;
+      log.info("share link regenerated", { rotated: !!existing });
       return response({ settings: data, rotated: !!existing });
     }
 
@@ -249,6 +253,7 @@ export async function POST(request: NextRequest) {
         .in("id", galleryImageIds);
       if (ownedImagesError) throw ownedImagesError;
       if ((ownedImages ?? []).length !== galleryImageIds.length) {
+        log.warn("gallery images not owned by user", { requested: galleryImageIds.length, owned: (ownedImages ?? []).length });
         return response({ error: "選択した画像を確認できませんでした。再読み込みしてください。" }, 400);
       }
     }
@@ -309,6 +314,7 @@ export async function POST(request: NextRequest) {
       if (galleryError) throw galleryError;
     }
 
+    log.info("share settings saved", { enabled: payload.enabled, galleryImages: galleryImageIds.length });
     return response({
       settings: {
         ...savedSettings,
@@ -321,24 +327,25 @@ export async function POST(request: NextRequest) {
       ])),
     });
   } catch (error) {
-    console.error("share settings POST failed", error);
+    log.error("share settings POST failed", error);
     return response({ error: "共有設定を保存できませんでした" }, 500);
   }
-}
+});
 
-export async function DELETE(request: NextRequest) {
+export const DELETE = withRequestLog("api.share.settings", async (request: NextRequest) => {
   try {
     const auth = await requirePremium(request);
-    if ("error" in auth) return auth.error;
+    if ("error" in auth && auth.error) return auth.error;
 
     const { error } = await auth.admin
       .from("public_share_pages")
       .delete()
       .eq("user_id", auth.user.id);
     if (error) throw error;
+    log.info("share page deleted");
     return response({ deleted: true });
   } catch (error) {
-    console.error("share settings DELETE failed", error);
+    log.error("share settings DELETE failed", error);
     return response({ error: "共有ページを削除できませんでした" }, 500);
   }
-}
+});

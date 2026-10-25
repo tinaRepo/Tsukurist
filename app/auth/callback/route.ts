@@ -2,6 +2,9 @@ import { createServerClient } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { getLogger, putContext, withRequestLog } from "@/lib/server/logger";
+
+const log = getLogger("auth.callback");
 
 // リダイレクト先（next）は自サイト内のパスのみ許可する（オープンリダイレクト対策）。
 // "//evil.com"・"/\evil.com"・"https://evil.com"・"@evil.com" などは "/" にフォールバックする。
@@ -17,7 +20,7 @@ function safeNextPath(raw: string | null): string {
   }
 }
 
-export async function GET(request: NextRequest) {
+export const GET = withRequestLog("auth.callback", async (request: NextRequest) => {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
   const next = safeNextPath(searchParams.get("next"));
@@ -55,6 +58,7 @@ export async function GET(request: NextRequest) {
 
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
+        putContext({ userId: session.user.id });
         const adminSupabase = createClient(
           process.env.NEXT_PUBLIC_SUPABASE_URL!,
           process.env.SUPABASE_SERVICE_ROLE_KEY!,
@@ -67,14 +71,19 @@ export async function GET(request: NextRequest) {
           .select("id")
           .maybeSingle();
         if (profileError || !profile) {
-          console.error("failed to save Google login provider:", profileError ?? "profile not found");
+          log.error("failed to save Google login provider", profileError ?? "profile not found");
+        } else {
+          log.info("Google login completed");
         }
       } else {
-        console.error("Google callback completed without a session user");
+        log.error("Google callback completed without a session user");
       }
       return response;
     }
+    log.warn("OAuth code exchange failed", { code: error.code, message: error.message });
+  } else {
+    log.warn("OAuth callback without code");
   }
 
   return NextResponse.redirect(`${origin}/login?error=auth_callback_failed`);
-}
+});

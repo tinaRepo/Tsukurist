@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
 import { checkRateLimit } from "./admin";
+import { getLogger } from "./logger";
 import { adminAlertEmail, getSupportEmail, getSupportFrom } from "@/lib/email-templates";
 
 // ============================================================
@@ -9,7 +10,10 @@ import { adminAlertEmail, getSupportEmail, getSupportFrom } from "@/lib/email-te
 //   - startJobRun /
 //     finishJobRun   : Cron等の実行記録（job_runs）。/api/health が最終成功時刻の監視に使う
 //   - pingHealthchecks : Healthchecks.io 等の「死活監視（Dead man's switch）」へ通知（任意）
+// 詳細なログは lib/server/logger.ts（app_logs）に残る。ここのメール・pingは「気づくための通知」。
 // ============================================================
+
+const log = getLogger("server.monitor");
 
 export async function alertAdmin(
   admin: SupabaseClient, key: string, subject: string, detail: string
@@ -28,16 +32,17 @@ export async function alertAdmin(
       to,
       ...adminAlertEmail(subject, detail, new Date().toISOString()),
     });
+    log.info("admin alert sent", { key, subject });
   } catch (e) {
     // アラート自体の失敗でメイン処理を止めない
-    console.error("alertAdmin failed:", e);
+    log.error("alertAdmin failed", e);
   }
 }
 
 export async function startJobRun(admin: SupabaseClient, job: string): Promise<string | null> {
   const { data, error } = await admin.from("job_runs").insert({ job }).select("id").single();
   if (error) {
-    console.error("startJobRun failed:", error);
+    log.error("startJobRun failed", error);
     return null;
   }
   return data.id as string;
@@ -55,7 +60,7 @@ export async function finishJobRun(
     failed: result.failed ?? 0,
     detail: result.detail?.slice(0, 2000) ?? null,
   }).eq("id", id);
-  if (error) console.error("finishJobRun failed:", error);
+  if (error) log.error("finishJobRun failed", error);
 }
 
 // HEALTHCHECKS_PING_URL（例: https://hc-ping.com/<uuid>）を設定すると、成功のたびにpingする。
@@ -68,6 +73,6 @@ export async function pingHealthchecks(kind: "success" | "fail"): Promise<void> 
       method: "GET", signal: AbortSignal.timeout(5000),
     });
   } catch (e) {
-    console.error("healthchecks ping failed:", e);
+    log.warn("healthchecks ping failed", e);
   }
 }

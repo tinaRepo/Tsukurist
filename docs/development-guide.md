@@ -4,12 +4,12 @@
 
 ツクリストは、依頼・タスクの納期、金額、確認用画像を管理するWebアプリです。
 
-| 領域 | 主な技術 |
-| --- | --- |
-| アプリ | Next.js 14 (App Router)、React、TypeScript |
-| DB・認証・画像 | Supabase |
-| ホスティング・Cron | Vercel |
-| 決済・メール・通知 | Stripe、Resend、Web Push |
+| 領域               | 主な技術                                   |
+| ------------------ | ------------------------------------------ |
+| アプリ             | Next.js 14 (App Router)、React、TypeScript |
+| DB・認証・画像     | Supabase                                   |
+| ホスティング・Cron | Vercel                                     |
+| 決済・メール・通知 | Stripe、Resend、Web Push                   |
 
 主なコードの場所:
 
@@ -17,11 +17,12 @@
 - `components/`, `hooks/`: UI、共有フック
 - `lib/supabase.ts`: Supabaseクライアント、型、データ操作
 - `lib/server/`: service roleを使うサーバー専用処理
+- `lib/server/logger.ts`: サーバーのログ出力（log4j2風。`app_logs` に保存）
 - `supabase/migrations/`: DB変更履歴
 - `scripts/`: 一回限りのデータ移行などの運用スクリプト
 
 詳細なセットアップは[README](../README.md)、DB変更は[DB運用ガイド](./database-operations.md)を参照してください。
-Stripeのテスト・本番設定と課金挙動は[Stripe運用ガイド](./stripe-guide.md)、本番ドメインとメール設定は[独自ドメイン設定・移行ガイド](./domain-migration.md)を参照してください。
+Stripeのテスト・本番設定と課金挙動は[Stripe運用ガイド](./stripe-guide.md)、本番ドメインとメール設定は[独自ドメイン設定・移行ガイド](./domain-migration.md)、ログの出力・保存・調査方法は[ログ運用ガイド](./logging-guide.md)を参照してください。
 
 ## ローカル開発と検証
 
@@ -48,6 +49,7 @@ npm run build
 - 再利用するUI・検索条件・表示定数は既存の共有コンポーネントやフックを確認してから変更する。
 - 色、角丸、影、タイポグラフィは `app/globals.css` のトークンを使い、画面間の一貫性を保つ。
 - 画像URLは一括取得し、依存しない非同期処理は並列化する。不要な大容量クライアント処理を追加しない。
+- サーバー側（APIルート・`lib/server/`）では `console.*` を使わず、`lib/server/logger.ts` の `getLogger()` でログを出す。APIルートは `withRequestLog()` で包む。パスワード・トークン・個人情報（メール本文など）はログに含めない。詳細は[ログ運用ガイド](./logging-guide.md)。
 
 ## リリースと変更履歴
 

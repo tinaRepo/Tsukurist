@@ -3,28 +3,38 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { createAdminClient, isCronAuthorized } from "@/lib/server/admin";
 import { alertAdmin, finishJobRun, pingHealthchecks, startJobRun } from "@/lib/server/monitor";
+import { getLogger, withRequestLog } from "@/lib/server/logger";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
 const JOB = "deadline-notify";
+const log = getLogger("cron.deadline-notify");
 const DAYS_AHEAD = 7;            // 納期までこの日数以内のタスクを通知
 const CONCURRENCY = 10;
 const TIME_BUDGET_MS = 50_000;   // maxDuration(60秒)より手前で打ち切る
 const PAGE = 1000;
 
+// ログの保持期間（日）。INFO以下 / WARN以上。変更時は docs/logging-guide.md も更新すること
+const LOG_RETENTION_LOW_DAYS = 14;
+const LOG_RETENTION_HIGH_DAYS = 90;
+
 type Sub = { user_id: string; endpoint: string; subscription: any };
 type TaskRow = { user_id: string; title: string; deadline: string };
 
 // 毎日JST 8時に実行され、対象タスクがある通知購読ユーザーの全端末へWeb Pushを送る。
-//   Authorization: Bearer <CRON_SECRET> 必須。詳細はレスポンスに含めない（ログ・job_runsのみ）
-export async function GET(request: NextRequest) {
-  if (!isCronAuthorized(request)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+//   Authorization: Bearer <CRON_SECRET> 必須。詳細はレスポンスに含めない（app_logs・job_runsに記録）
+export const GET = withRequestLog("cron.deadline-notify", async (request: NextRequest) => {
+  if (!isCronAuthorized(request)) {
+    log.warn("unauthorized cron request");
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
   const admin = createAdminClient();
   const runId = await startJobRun(admin, JOB);
   const started = Date.now();
+  log.info("job started", { runId });
 
   // JSTの現在日時
   const jst = new Date(Date.now() + 9 * 3600_000);
@@ -72,6 +82,7 @@ export async function GET(request: NextRequest) {
       if (error) throw error;
       (data ?? []).forEach(r => claimedIds.add(r.user_id));
     }
+    log.debug("targets resolved", { subscriptions: subs.length, targets: targets.size, usersWithTasks: userIds.length, claimed: claimedIds.size });
 
     // 5) 送信（並列10・時間予算あり）
     const appUrl = process.env.NEXT_PUBLIC_APP_URL!;
@@ -101,10 +112,11 @@ export async function GET(request: NextRequest) {
           failed++;
           // 失効した購読（404/410）は、その端末の分だけ削除する
           if (e?.statusCode === 404 || e?.statusCode === 410) {
+            log.info("expired push subscription removed", { userId: job.sub.user_id, statusCode: e.statusCode });
             await admin.from("push_subscriptions").delete()
               .eq("user_id", job.sub.user_id).eq("endpoint", job.sub.endpoint);
           } else {
-            console.error(`push failed for ${job.sub.user_id}:`, e?.message);
+            log.warn("push failed", { userId: job.sub.user_id, statusCode: e?.statusCode, message: e?.message });
           }
         }
       }
@@ -118,20 +130,22 @@ export async function GET(request: NextRequest) {
     await finishJobRun(admin, runId, { status, sent, failed, detail });
 
     if (bad) {
+      log.error("job finished with problems", { runId, status, detail });
       await alertAdmin(admin, "cron-deadline-notify", "納期通知Cronで送信異常がありました", detail);
       await pingHealthchecks("fail");
     } else {
+      log.info("job finished", { runId, status, detail, durationMs: Date.now() - started });
       await pingHealthchecks("success");
     }
     return NextResponse.json({ ok: true });
   } catch (e: any) {
-    console.error("cron deadline-notify error:", e);
+    log.error("job failed", e);
     await finishJobRun(admin, runId, { status: "error", detail: String(e?.message ?? e) });
     await alertAdmin(admin, "cron-deadline-notify-error", "納期通知Cronが異常終了しました", String(e?.stack ?? e));
     await pingHealthchecks("fail");
     return NextResponse.json({ error: "internal error" }, { status: 500 });
   }
-}
+});
 
 // ページングで全件取得（PostgRESTの max_rows=1000 対策）
 async function fetchAll<T>(
@@ -147,10 +161,17 @@ async function fetchAll<T>(
   return all;
 }
 
-// 古い記録の削除（notification_log 30日 / job_runs 90日 / stripe_events 30日）
+// 古い記録の削除（notification_log 30日 / job_runs 90日 / stripe_events 30日 / app_logs 14日・90日）
 async function cleanup(admin: ReturnType<typeof createAdminClient>) {
   const ago = (days: number) => new Date(Date.now() - days * 86400_000);
   await admin.from("notification_log").delete().lt("notify_date", ago(30).toISOString().slice(0, 10));
   await admin.from("job_runs").delete().lt("started_at", ago(90).toISOString());
   await admin.from("stripe_events").delete().lt("processed_at", ago(30).toISOString());
+
+  // アプリログ（log4j2のDeleteAction相当）。失敗してもCron本体は続行する
+  const { data: purged, error } = await admin.rpc("purge_app_logs", {
+    p_low_days: LOG_RETENTION_LOW_DAYS, p_high_days: LOG_RETENTION_HIGH_DAYS,
+  });
+  if (error) log.warn("purge_app_logs failed (migration applied?)", error);
+  else log.info("old logs purged", { deleted: purged });
 }

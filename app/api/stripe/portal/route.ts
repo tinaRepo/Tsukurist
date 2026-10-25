@@ -2,13 +2,15 @@ import Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { getLogger, putContext, withRequestLog } from "@/lib/server/logger";
 
+const log = getLogger("stripe.portal");
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 const PORTAL_SETUP_CACHE_MS = 5 * 60 * 1000;
 let portalSetupPromise: Promise<void> | null = null;
 let portalSetupCheckedAt = 0;
 
-export async function POST(request: NextRequest) {
+export const POST = withRequestLog("stripe.portal", async (request: NextRequest) => {
   try {
     const authHeader = request.headers.get("authorization") ?? "";
     const token = authHeader.replace("Bearer ", "");
@@ -26,6 +28,7 @@ export async function POST(request: NextRequest) {
     if (userErr || !user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    putContext({ userId: user.id });
 
     const { data: profile } = await adminSupabase
       .from("user_profiles")
@@ -39,7 +42,7 @@ export async function POST(request: NextRequest) {
 
     const configuration = process.env.STRIPE_BILLING_PORTAL_CONFIGURATION_ID;
     if (!configuration) {
-      console.error("Stripe billing portal configuration is missing");
+      log.error("Stripe billing portal configuration is missing");
       return NextResponse.json(
         { error: "プラン管理の設定が完了していません。時間をおいて再度お試しください。" },
         { status: 500 }
@@ -51,7 +54,7 @@ export async function POST(request: NextRequest) {
       process.env.STRIPE_PREMIUM_PRICE_ID,
     ].filter((priceId): priceId is string => !!priceId);
     if (priceIds.length !== 2) {
-      console.error("Stripe standard and premium price IDs are required for the billing portal");
+      log.error("Stripe standard and premium price IDs are required for the billing portal");
       return NextResponse.json(
         { error: "プラン管理の設定が完了していません。時間をおいて再度お試しください。" },
         { status: 500 }
@@ -94,6 +97,7 @@ export async function POST(request: NextRequest) {
           planUpdates.default_allowed_updates[0] !== "price";
 
         if (configNeedsUpdate) {
+          log.info("updating Stripe billing portal configuration", { configuration });
           await stripe.billingPortal.configurations.update(configuration, {
             features: {
               subscription_cancel: {
@@ -125,9 +129,10 @@ export async function POST(request: NextRequest) {
       return_url: `${appUrl}/pricing?billing=return`,
     });
 
+    log.info("billing portal session created");
     return NextResponse.json({ url: portalSession.url });
   } catch (e: any) {
-    console.error("portal error:", e);
+    log.error("portal error", e);
     return NextResponse.json({ error: e.message ?? "エラーが発生しました" }, { status: 500 });
   }
-}
+});

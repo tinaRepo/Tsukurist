@@ -26,6 +26,7 @@
     - [Stripe（サブスクリプション）](#stripeサブスクリプション)
     - [Web Push（プッシュ通知）](#web-pushプッシュ通知)
     - [Cron Jobの認証（CRON\_SECRET）](#cron-jobの認証cron_secret)
+    - [ログの保存（app\_logs）](#ログの保存app_logs)
   - [5. 管理者設定](#5-管理者設定)
   - [6. 機能一覧](#6-機能一覧)
   - [7. プラン制限](#7-プラン制限)
@@ -45,6 +46,7 @@
 ### 1-2. DB・RLS・Storage の構築
 
 DBの変更・反映方法は [docs/database-operations.md](docs/database-operations.md) を参照してください。
+ログ保存用の `app_logs` テーブルも、同じmigrationの手順で作成されます（[ログの保存](#ログの保存app_logs)参照）。
 
 ### 1-3. 認証プロバイダーの設定
 
@@ -65,9 +67,9 @@ DBの変更・反映方法は [docs/database-operations.md](docs/database-operat
 
 **Dashboard → Authentication → URL Configuration** で設定します。
 
-| 項目          | 値                               |
-| ------------- | -------------------------------- |
-| Site URL      | `https://tsukurist.com`          |
+| 項目          | 値                                                                                 |
+| ------------- | ---------------------------------------------------------------------------------- |
+| Site URL      | `https://tsukurist.com`                                                            |
 | Redirect URLs | `https://tsukurist.com/**`、使用するVercel Preview URL、`http://localhost:3000/**` |
 
 Vercel Preview の認証リダイレクトを使う場合は、実際に使うPreview URLもRedirect URLsに追加します。Googleログインを使う場合、Google Cloud Consoleの承認済みリダイレクトURIは `https://<project-ref>.supabase.co/auth/v1/callback` です。詳しくは [Googleログイン設定](docs/google-login.md) を参照してください。
@@ -116,6 +118,7 @@ vercel dev
 ```
 
 `http://localhost:3000` でアプリが起動します。HTML も API も全てローカルで動作します。
+ローカル開発中（`NODE_ENV` が `production` 以外）は、ログのレベルが `DEBUG` になります。ローカルのログを `app_logs` に保存したくない場合は `.env.local` に `LOG_DB_ENABLED=false` を設定してください。
 
 ---
 
@@ -126,28 +129,32 @@ vercel dev
 3. Project → **Settings → Domains** に `tsukurist.com` と `www.tsukurist.com` を登録し、表示されたDNSレコードをCloudflareのDNSに設定します。`www.tsukurist.com` はVercelで `tsukurist.com` にリダイレクトする設定にします。DNSレコードはVercelが表示する値を使い、メール用のMX/TXTレコードは削除・上書きしないでください。
 4. **Environment Variables** に以下を追加してデプロイ（雛形は `.env.example`）
 
-| 環境変数                               | 値                            | 備考                                                                                  |
-| -------------------------------------- | ----------------------------- | ------------------------------------------------------------------------------------- |
-| `NEXT_PUBLIC_SUPABASE_URL`             | Supabase の Project URL       |                                                                                       |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY`        | Supabase の anon key          |                                                                                       |
-| `SUPABASE_SERVICE_ROLE_KEY`            | Supabase の service_role key  | ⚠️ サーバーサイド専用                                                                  |
-| `RESEND_API_KEY`                       | Resend の API キー            |                                                                                       |
-| `SUPPORT_EMAIL`                        | サポート窓口兼管理通知の受信先・送信元 | 本番・Preview とも `support@tsukurist.com` |
-| `NOREPLY_EMAIL`                        | 自動通知メールの送信元 | 本番・Preview とも `noreply@tsukurist.com` |
-| `NEXT_PUBLIC_APP_URL`                  | アプリの公開URL               | Production: `https://tsukurist.com`。Preview: 対象Vercel PreviewのURL（パスなし）。Webhookメール・通知のリンク先に使用 |
-| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`   | Stripe の公開鍵               |                                                                                       |
-| `STRIPE_SECRET_KEY`                    | Stripe の秘密鍵               | ⚠️ サーバーサイド専用                                                                  |
-| `STRIPE_WEBHOOK_SECRET`                | Stripe Webhook のシークレット |                                                                                       |
-| `STRIPE_BILLING_PORTAL_CONFIGURATION_ID` | 上位プラン変更・期間終了時解約対応ポータルの Configuration ID | Stripe Dashboard で作成した設定を指定 |
-| `STRIPE_STANDARD_PRICE_ID`             | スタンダードプランの Price ID | サーバーサイド用                                                                      |
-| `STRIPE_PREMIUM_PRICE_ID`              | プレミアムプランの Price ID   | サーバーサイド用                                                                      |
-| `NEXT_PUBLIC_STRIPE_STANDARD_PRICE_ID` | スタンダードプランの Price ID | フロント用                                                                            |
-| `NEXT_PUBLIC_STRIPE_PREMIUM_PRICE_ID`  | プレミアムプランの Price ID   | フロント用                                                                            |
-| `NEXT_PUBLIC_VAPID_PUBLIC_KEY`         | Web Push の公開鍵             |                                                                                       |
-| `VAPID_PRIVATE_KEY`                    | Web Push の秘密鍵             |                                                                                       |
-| `VAPID_EMAIL`                          | Web Push 送信元メール         | `mailto:support@tsukurist.com`                                                        |
-| `CRON_SECRET`                          | Cron Job 認証用シークレット   | ⚠️ 16文字以上。自分で生成する（[4. 外部サービス設定](#cron-jobの認証cron_secret)参照） |
-| `HEALTHCHECKS_PING_URL`                | 死活監視の ping URL（任意）   | Healthchecks.io 等で作成。Cron 成功のたびに ping し、途切れると通知される             |
+| 環境変数                                 | 値                                                            | 備考                                                                                                                   |
+| ---------------------------------------- | ------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `NEXT_PUBLIC_SUPABASE_URL`               | Supabase の Project URL                                       |                                                                                                                        |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY`          | Supabase の anon key                                          |                                                                                                                        |
+| `SUPABASE_SERVICE_ROLE_KEY`              | Supabase の service_role key                                  | ⚠️ サーバーサイド専用                                                                                                   |
+| `RESEND_API_KEY`                         | Resend の API キー                                            |                                                                                                                        |
+| `SUPPORT_EMAIL`                          | サポート窓口兼管理通知の受信先・送信元                        | 本番・Preview とも `support@tsukurist.com`                                                                             |
+| `NOREPLY_EMAIL`                          | 自動通知メールの送信元                                        | 本番・Preview とも `noreply@tsukurist.com`                                                                             |
+| `NEXT_PUBLIC_APP_URL`                    | アプリの公開URL                                               | Production: `https://tsukurist.com`。Preview: 対象Vercel PreviewのURL（パスなし）。Webhookメール・通知のリンク先に使用 |
+| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`     | Stripe の公開鍵                                               |                                                                                                                        |
+| `STRIPE_SECRET_KEY`                      | Stripe の秘密鍵                                               | ⚠️ サーバーサイド専用                                                                                                   |
+| `STRIPE_WEBHOOK_SECRET`                  | Stripe Webhook のシークレット                                 |                                                                                                                        |
+| `STRIPE_BILLING_PORTAL_CONFIGURATION_ID` | 上位プラン変更・期間終了時解約対応ポータルの Configuration ID | Stripe Dashboard で作成した設定を指定                                                                                  |
+| `STRIPE_STANDARD_PRICE_ID`               | スタンダードプランの Price ID                                 | サーバーサイド用                                                                                                       |
+| `STRIPE_PREMIUM_PRICE_ID`                | プレミアムプランの Price ID                                   | サーバーサイド用                                                                                                       |
+| `NEXT_PUBLIC_STRIPE_STANDARD_PRICE_ID`   | スタンダードプランの Price ID                                 | フロント用                                                                                                             |
+| `NEXT_PUBLIC_STRIPE_PREMIUM_PRICE_ID`    | プレミアムプランの Price ID                                   | フロント用                                                                                                             |
+| `NEXT_PUBLIC_VAPID_PUBLIC_KEY`           | Web Push の公開鍵                                             |                                                                                                                        |
+| `VAPID_PRIVATE_KEY`                      | Web Push の秘密鍵                                             |                                                                                                                        |
+| `VAPID_EMAIL`                            | Web Push 送信元メール                                         | `mailto:support@tsukurist.com`                                                                                         |
+| `CRON_SECRET`                            | Cron Job 認証用シークレット                                   | ⚠️ 16文字以上。自分で生成する（[4. 外部サービス設定](#cron-jobの認証cron_secret)参照）                                  |
+| `HEALTHCHECKS_PING_URL`                  | 死活監視の ping URL（任意）                                   | Healthchecks.io 等で作成。Cron 成功のたびに ping し、途切れると通知される                                              |
+| `LOG_LEVEL`                              | ログの最低レベル（任意）                                      | `TRACE`〜`FATAL`。未設定時は本番 `INFO`。詳細は[ログの保存](#ログの保存app_logs)                                       |
+| `LOG_LEVELS`                             | ロガー名ごとのレベル（任意）                                  | 例: `stripe=WARN,cron.deadline-notify=DEBUG`                                                                           |
+| `LOG_DB_LEVEL`                           | DBに保存する最低レベル（任意）                                | 未設定時は `INFO`。保存量を減らすなら `WARN`                                                                           |
+| `LOG_DB_ENABLED`                         | DBへのログ保存（任意）                                        | `false` で無効化（コンソール出力のみ）                                                                                 |
 
 VercelのEnvironment Variablesは、ProductionとPreviewそれぞれに設定します。`NEXT_PUBLIC_APP_URL` はProductionでは `https://tsukurist.com`、PreviewではVercelのPreview URLにしてください。Stripe CheckoutとCustomer Portalの戻り先はリクエスト元のoriginから生成されます。Previewも `support@tsukurist.com` と `noreply@tsukurist.com` から送信します。問い合わせ・管理通知は本番のサポート受信箱に届くため、Previewでのメール・決済・アカウント削除テストには注意してください。
 
@@ -197,6 +204,7 @@ npx web-push generate-vapid-keys
 
 納期通知は `vercel.json` の Cron（**毎日 8:00・日本時間**に実行）が `/api/cron/deadline-notify` を呼び出して実行します。
 納期が7日以内の未完了タスクがあるユーザーのうち、プッシュ通知を有効にしている端末へ送信します。
+同じCronで、期限切れの記録（通知ログ・Cron実行記録・Stripeイベント記録）と、保持期間を過ぎたアプリログ（`app_logs`）も削除します。
 VercelのCron式はUTC基準で、`0 23 * * *` が毎日8:00（日本時間）に相当します。Healthchecks.ioもCron式 `0 23 * * *`、タイムゾーン `UTC`、Grace Time `15 minutes` に設定してください。
 このルートは **`Authorization: Bearer <CRON_SECRET>` ヘッダーが一致しないリクエストを 401 で拒否**します
 （`CRON_SECRET` が未設定・16 文字未満の場合も常に拒否）。
@@ -229,6 +237,33 @@ curl -i https://tsukurist.com/api/cron/deadline-notify
 > Cron は **Production デプロイ（main ブランチ）でのみ**実行されます。
 >
 > HobbyプランのCron実行回数制限に合わせ、毎日1回のスケジュールにしています。なお、Hobbyは非商用利用向けのため、課金・広告のある本サービスで利用するプランはVercelの最新の利用条件を確認してください。
+
+### ログの保存（app_logs）
+
+Vercelのランタイムログは保持期間が短いため、サーバー側のログは `lib/server/logger.ts`（log4j2風のロガー）で出力し、Supabaseの `app_logs` テーブルに保存します（Vercelのログにも従来どおり出力されます）。
+
+- レベル: `TRACE` / `DEBUG` / `INFO` / `WARN` / `ERROR` / `FATAL`
+- 出力先: コンソール（Vercelログ）と `app_logs`（`LOG_DB_LEVEL` 以上のみ。既定は `INFO` 以上）
+- 各リクエストに `request_id`（Vercelの `x-vercel-id`）とユーザーID等が自動で付き、1リクエストの流れを追えます
+- パスワード・トークン等のキーは自動でマスクされます。個人情報（お問い合わせ本文など）は記録しません
+- 保持期間: `INFO` 以下は14日、`WARN` 以上は90日。毎日のCronが古いログを削除します
+- `app_logs` は `service_role` 専用で、クライアントからは読めません。調べるときはSupabaseの SQL Editor を使います
+
+セットアップ:
+
+1. `supabase/migrations/20261024000000_V2.0.0_app_logs.sql` を検証環境→本番の順で適用する（[DB運用ガイド](docs/database-operations.md)）
+2. 必要に応じて `LOG_LEVEL` などの環境変数を設定して Redeploy する（未設定でも動作します）
+
+```sql
+-- 直近のエラー（例）
+select logged_at, logger, message, context
+from public.app_logs
+where level_value >= 50
+order by logged_at desc
+limit 50;
+```
+
+使い方・環境変数・調査用SQL・注意事項の詳細は [ログ運用ガイド](docs/logging-guide.md) を参照してください。
 
 ---
 
@@ -305,6 +340,7 @@ where id = 'ここに UUID を貼る';
 **運用・監視**
 - ✅ `/api/health`（死活監視。`?deep=1` + Bearer でCronの最終成功時刻まで確認）
 - ✅ Cronの実行記録（`job_runs`）と、異常時の管理者メール・Healthchecks.io通知（任意）
+- ✅ アプリログの永続化（log4j2風ロガー `lib/server/logger.ts`。コンソール + Supabase `app_logs`。リクエストID・ユーザーID付き、機密キーの自動マスク、保持期間を過ぎたログはCronで自動削除）
 - ✅ CI（型チェック・lint・ビルド）
 
 **管理者**
@@ -389,6 +425,12 @@ where id = 'ここに UUID を貼る';
   1行に収めたい場合は、重要度の低い項目を削るか、`flex: "1 1 0%"` +
   `minWidth: 0` + `text-overflow: ellipsis`で省略表示にすること
   （実装例: `components/TaskShared.tsx`の`TaskListCard`）。
+- **サーバー側のログは `console.*` ではなくロガーで出す**：APIルート・`lib/server/` では
+  `lib/server/logger.ts` の `getLogger()` を使い、APIルートは `withRequestLog()` で包むこと
+  （リクエストID・所要時間・未捕捉例外の記録と、サーバーレス終了前のログ書き込み完了待ちを自動で行う）。
+  ページ描画（Server Component）では出力後に `await flushLogs()` を呼ぶ。パスワード・トークン・
+  個人情報（お問い合わせ本文・メールアドレスなど）はログに含めないこと。Edgeランタイム
+  （`middleware.ts`）では使えない。詳細は [ログ運用ガイド](docs/logging-guide.md)。
 
 ---
 
@@ -419,7 +461,8 @@ Google Search Console・Google AdSenseの設定は、[docs/seo-ads-guide.md](doc
 ## 開発者向け資料
 
 - [開発・運用ガイド](docs/development-guide.md)：構成、実装ルール、検証・リリース手順
-- [DB運用ガイド](docs/database-operations.md)：マイグレーション、RLS、権限付与
+- [DB運用ガイド](docs/database-operations.md)：マイグレーション、RLS、権限付与、`app_logs`
+- [ログ運用ガイド](docs/logging-guide.md)：ロガーの使い方、環境変数、保持期間、調査用SQL
 - [Googleログイン設定](docs/google-login.md)：OAuth・リダイレクトURL設定
 - [Stripe運用ガイド](docs/stripe-guide.md)：商品・Webhook・Customer Portal・テスト運用
 - [独自ドメイン設定・移行ガイド](docs/domain-migration.md)：本番ドメイン、Vercel Preview、メール設定

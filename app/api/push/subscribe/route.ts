@@ -1,6 +1,9 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { getLogger, putContext, withRequestLog } from "@/lib/server/logger";
+
+const log = getLogger("api.push.subscribe");
 
 function createAdminClient() {
   return createClient(
@@ -17,11 +20,12 @@ async function authenticate(request: NextRequest) {
   const adminSupabase = createAdminClient();
   const { data: { user }, error } = await adminSupabase.auth.getUser(token);
   if (error || !user) return null;
+  putContext({ userId: user.id });
   return { adminSupabase, user };
 }
 
 // POST: Web Push通知の購読情報を保存するAPIルート（1ユーザー複数端末。端末はendpointで識別）
-export async function POST(request: NextRequest) {
+export const POST = withRequestLog("api.push.subscribe", async (request: NextRequest) => {
   try {
     const auth = await authenticate(request);
     if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -38,16 +42,17 @@ export async function POST(request: NextRequest) {
 
     if (dbError) throw dbError;
 
+    log.info("push subscription saved");
     return NextResponse.json({ success: true });
   } catch (e: any) {
-    console.error("subscribe error:", e);
+    log.error("subscribe error", e);
     return NextResponse.json({ error: "保存に失敗しました" }, { status: 500 });
   }
-}
+});
 
 // DELETE: Web Push通知の購読情報を削除するAPIルート
 //   body に { endpoint } があればその端末の分だけ、無ければこのユーザーの全端末分を削除する
-export async function DELETE(request: NextRequest) {
+export const DELETE = withRequestLog("api.push.subscribe", async (request: NextRequest) => {
   try {
     const auth = await authenticate(request);
     if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -59,9 +64,10 @@ export async function DELETE(request: NextRequest) {
     const { error: dbError } = await query;
     if (dbError) throw dbError;
 
+    log.info("push subscription removed", { allDevices: typeof payload?.endpoint !== "string" });
     return NextResponse.json({ success: true });
   } catch (e: any) {
-    console.error("unsubscribe error:", e);
+    log.error("unsubscribe error", e);
     return NextResponse.json({ error: "解除に失敗しました" }, { status: 500 });
   }
-}
+});

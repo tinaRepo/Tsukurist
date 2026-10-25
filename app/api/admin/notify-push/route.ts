@@ -2,14 +2,18 @@ import webpush from "web-push";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { createAdminClient, getAdminFromRequest } from "@/lib/server/admin";
+import { getLogger, putContext, withRequestLog } from "@/lib/server/logger";
+
+const log = getLogger("api.admin.notify-push");
 
 // お知らせ・バージョン情報の新規作成時に、対象ユーザーの購読者へプッシュ通知を送るAPI
 // （1ユーザーが複数端末で購読している場合は、すべての端末に送る）
-export async function POST(request: NextRequest) {
+export const POST = withRequestLog("api.admin.notify-push", async (request: NextRequest) => {
     try {
         const adminSupabase = createAdminClient();
         const auth = await getAdminFromRequest(request, adminSupabase);
         if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status });
+        putContext({ adminId: auth.user.id });
 
         const { title, body, targetPlans, targetUserIds } = await request.json();
         if (!title || !body || typeof title !== "string" || typeof body !== "string") {
@@ -41,6 +45,7 @@ export async function POST(request: NextRequest) {
         const { data: subs } = await query;
 
         if (!subs || subs.length === 0) {
+            log.info("no subscribers for broadcast", { title });
             return NextResponse.json({ sent: 0, failed: 0 });
         }
 
@@ -54,7 +59,7 @@ export async function POST(request: NextRequest) {
                 sent++;
             } catch (e: any) {
                 failed++;
-                console.error(`push failed for ${sub.user_id}:`, e.message);
+                log.warn("push failed", { userId: sub.user_id, statusCode: e.statusCode, message: e.message });
                 // 失効した購読（404/410）は、その端末の分だけ削除する（他の端末は残す）
                 if (e.statusCode === 410 || e.statusCode === 404) {
                     await adminSupabase
@@ -66,9 +71,10 @@ export async function POST(request: NextRequest) {
             }
         }
 
+        log.info("broadcast sent", { title, sent, failed, targeted: targetUserIdList ? targetUserIdList.length : "all" });
         return NextResponse.json({ sent, failed });
     } catch (e: any) {
-        console.error("notify-push error:", e);
+        log.error("notify-push error", e);
         return NextResponse.json({ error: "エラーが発生しました" }, { status: 500 });
     }
-}
+});

@@ -1,24 +1,26 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { getLogger, putContext, withRequestLog } from "@/lib/server/logger";
 
 const COOKIE_NAME = "ct_last_login_provider";
+const log = getLogger("api.auth.last-login-provider");
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 // GET: ログイン画面（未認証）がバッジ表示のために呼ぶ。Cookieの値のみ返す
-export async function GET(request: NextRequest) {
+export const GET = withRequestLog("api.auth.last-login-provider", async (request: NextRequest) => {
     const value = request.cookies.get(COOKIE_NAME)?.value;
     const provider = value === "email" || value === "google" || value === "twitter" ? value : null;
     return NextResponse.json(
         { provider },
         { headers: { "Cache-Control": "private, no-store, max-age=0" } }
     );
-}
+}, { quiet: true });
 
 // POST: ログイン成功後にログイン画面から呼ぶ。DBへ保存 + HttpOnly Cookieを発行
-export async function POST(request: NextRequest) {
+export const POST = withRequestLog("api.auth.last-login-provider", async (request: NextRequest) => {
     try {
         const { provider } = await request.json();
         if (provider !== "email" && provider !== "google" && provider !== "twitter") {
@@ -37,6 +39,7 @@ export async function POST(request: NextRequest) {
 
         const { data: { user }, error } = await adminSupabase.auth.getUser(token);
         if (error || !user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        putContext({ userId: user.id });
 
         // DBを正として保存（ログイン後の画面用・最終ログイン日時も同時に記録）
         const { data: profile, error: profileError } = await adminSupabase
@@ -47,10 +50,12 @@ export async function POST(request: NextRequest) {
             .maybeSingle();
         if (profileError) throw profileError;
         if (!profile) {
+            log.warn("user profile not found");
             return NextResponse.json({ error: "User profile not found" }, { status: 404 });
         }
 
         // ログイン画面（未認証）用にHttpOnly Cookieを発行（JSからは読み書き不可）
+        log.info("login recorded", { provider });
         const response = NextResponse.json({ success: true });
         response.cookies.set(COOKIE_NAME, provider, {
             httpOnly: true,
@@ -61,6 +66,7 @@ export async function POST(request: NextRequest) {
         });
         return response;
     } catch (e: any) {
+        log.error("failed to record login provider", e);
         return NextResponse.json({ error: e.message ?? "failed" }, { status: 500 });
     }
-}
+});
