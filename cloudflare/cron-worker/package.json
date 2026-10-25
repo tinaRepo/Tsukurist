@@ -1,0 +1,16 @@
+{
+  "name": "tsukurist-cron-worker",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Cloudflare Workers Cron Trigger that calls the Tsukurist deadline-notify endpoint on Vercel (production / staging)",
+  "scripts": {
+    "dev": "wrangler dev --test-scheduled",
+    "deploy:production": "wrangler deploy --env production",
+    "deploy:staging": "wrangler deploy --env staging",
+    "tail:production": "wrangler tail --env production",
+    "tail:staging": "wrangler tail --env staging"
+  },
+  "devDependencies": {
+    "wrangler": "^4"
+  }
+}

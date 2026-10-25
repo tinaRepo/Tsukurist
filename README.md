@@ -202,14 +202,13 @@ npx web-push generate-vapid-keys
 
 ### Cron Jobの認証（CRON_SECRET）
 
-納期通知は `vercel.json` の Cron（**毎日 8:00・日本時間**に実行）が `/api/cron/deadline-notify` を呼び出して実行します。
-納期が7日以内の未完了タスクがあるユーザーのうち、プッシュ通知を有効にしている端末へ送信します。
-同じCronで、期限切れの記録（通知ログ・Cron実行記録・Stripeイベント記録）と、保持期間を過ぎたアプリログ（`app_logs`）も削除します。
-VercelのCron式はUTC基準で、`0 23 * * *` が毎日8:00（日本時間）に相当します。Healthchecks.ioもCron式 `0 23 * * *`、タイムゾーン `UTC`、Grace Time `15 minutes` に設定してください。
+納期通知は **Cloudflare Workers の Cron Trigger**（**毎日 8:00・日本時間**）が、`/api/cron/deadline-notify` を呼び出して実行します。Workerのコードは `cloudflare/cron-worker/` にあり、**本番(production)用と検証(staging)用の2つのWorker**として別々にデプロイします（Vercelの Production / Preview の環境分離に対応）。セットアップ・切り替え手順・トラブルシューティングは [Cloudflare Cron 運用ガイド](docs/cloudflare-cron.md) を参照してください。
+処理本体はVercel側のルートです。納期が7日以内の未完了タスクがあるユーザーのうち、プッシュ通知を有効にしている端末へ送信し、同じ実行で、期限切れの記録（通知ログ・Cron実行記録・Stripeイベント記録）と、保持期間を過ぎたアプリログ（`app_logs`）も削除します。
+Cloudflareの Cron 式はUTC基準で、`0 23 * * *` が毎日8:00（日本時間）に相当します。Healthchecks.ioもCron式 `0 23 * * *`、タイムゾーン `UTC`、Grace Time `15 minutes` に設定してください。
 このルートは **`Authorization: Bearer <CRON_SECRET>` ヘッダーが一致しないリクエストを 401 で拒否**します
-（`CRON_SECRET` が未設定・16 文字未満の場合も常に拒否）。
+（`CRON_SECRET` が未設定・16 文字未満の場合も常に拒否）。`vercel.json` には `crons` を設定しません（Vercel Cronは使いません）。
 
-`CRON_SECRET` は外部サービスから発行されるものではなく、**自分でランダム文字列を生成**して Vercel に登録します。
+`CRON_SECRET` は外部サービスから発行されるものではなく、**自分でランダム文字列を生成**して、**同じ環境のVercelとCloudflare Workerの両方に同じ値**を登録します。本番と検証では**別の値**にしてください。
 
 ```bash
 # 1. 生成（どちらか）
@@ -217,8 +216,10 @@ openssl rand -hex 32
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ```
 
-2. **Vercel Dashboard → Project → Settings → Environment Variables** に `CRON_SECRET` を追加（Production）
-3. **Redeploy** する（Vercel Cron は `CRON_SECRET` が設定されていれば、上記ヘッダーを自動で付けて呼び出す）
+2. **Vercel Dashboard → Project → Settings → Environment Variables** に `CRON_SECRET` を追加（Production と Preview それぞれ別の値）して **Redeploy** する
+3. Cloudflare Worker に、同じ環境の値を登録する：
+   `cd cloudflare/cron-worker && npx wrangler secret put CRON_SECRET --env production`（Vercel Production の値）
+   `npx wrangler secret put CRON_SECRET --env staging`（Vercel Preview の値）
 4. ローカルで試す場合は `.env.local` に同じ値を書く（`vercel env pull .env.local` でも取得可）
 
 動作確認:
@@ -229,14 +230,12 @@ curl -i https://tsukurist.com/api/cron/deadline-notify
 ```
 
 > ⚠️ 正しいヘッダー付きで呼ぶと**実際に購読中ユーザーへ通知が送信されます**。
-> 手動実行は Vercel Dashboard → Project → Settings → Cron Jobs の「Run」ボタンで行うか、検証環境で行ってください。
+> 手動実行は検証環境で行ってください。本番で試すと、その日の通知枠（`notification_log`）を消費します。
 >
-> ⚠️ シークレットを `vercel.json` の URL（`?secret=...`）に書かないこと。リポジトリ・ログ・履歴に残ります。
-> 過去にコミットしたシークレットは**必ず再発行（ローテーション）**してください。
+> ⚠️ シークレットを `wrangler.toml`・`vercel.json` の URL（`?secret=...`）に書かないこと。リポジトリ・ログ・履歴に残ります。
+> 過去にコミットしたシークレットは**必ず再発行（ローテーション）**し、VercelとCloudflareの両方を更新してください。
 >
-> Cron は **Production デプロイ（main ブランチ）でのみ**実行されます。
->
-> HobbyプランのCron実行回数制限に合わせ、毎日1回のスケジュールにしています。なお、Hobbyは非商用利用向けのため、課金・広告のある本サービスで利用するプランはVercelの最新の利用条件を確認してください。
+> 本番Workerは本番URL、検証Workerは検証環境の安定したURL（`wrangler.toml` の `[env.staging.vars]` の `TARGET_URL`）をそれぞれ呼び出します。デプロイは `npm run deploy:production` / `npm run deploy:staging` を使い、環境を指定しない `wrangler deploy` は使わないでください。
 
 ### ログの保存（app_logs）
 
@@ -246,7 +245,7 @@ Vercelのランタイムログは保持期間が短いため、サーバー側�
 - 出力先: コンソール（Vercelログ）と `app_logs`（`LOG_DB_LEVEL` 以上のみ。既定は `INFO` 以上）
 - 各リクエストに `request_id`（Vercelの `x-vercel-id`）とユーザーID等が自動で付き、1リクエストの流れを追えます
 - パスワード・トークン等のキーは自動でマスクされます。個人情報（お問い合わせ本文など）は記録しません
-- 保持期間: `INFO` 以下は14日、`WARN` 以上は90日。毎日のCronが古いログを削除します
+- 保持期間: `INFO` 以下は14日、`WARN` 以上は90日。毎日のCron（Cloudflare Worker経由）が古いログを削除します
 - `app_logs` は `service_role` 専用で、クライアントからは読めません。調べるときはSupabaseの SQL Editor を使います
 
 セットアップ:
@@ -339,6 +338,7 @@ where id = 'ここに UUID を貼る';
 
 **運用・監視**
 - ✅ `/api/health`（死活監視。`?deep=1` + Bearer でCronの最終成功時刻まで確認）
+- ✅ 納期通知CronをCloudflare Workers（Cron Trigger）から起動（Bearer認証・リトライ付き。本番/検証で別Worker・別secret。`cloudflare/cron-worker/`）
 - ✅ Cronの実行記録（`job_runs`）と、異常時の管理者メール・Healthchecks.io通知（任意）
 - ✅ アプリログの永続化（log4j2風ロガー `lib/server/logger.ts`。コンソール + Supabase `app_logs`。リクエストID・ユーザーID付き、機密キーの自動マスク、保持期間を過ぎたログはCronで自動削除）
 - ✅ CI（型チェック・lint・ビルド）
@@ -463,6 +463,7 @@ Google Search Console・Google AdSenseの設定は、[docs/seo-ads-guide.md](doc
 - [開発・運用ガイド](docs/development-guide.md)：構成、実装ルール、検証・リリース手順
 - [DB運用ガイド](docs/database-operations.md)：マイグレーション、RLS、権限付与、`app_logs`
 - [ログ運用ガイド](docs/logging-guide.md)：ロガーの使い方、環境変数、保持期間、調査用SQL
+- [Cloudflare Cron 運用ガイド](docs/cloudflare-cron.md)：納期通知Cronの構成、デプロイ、切り替え手順、トラブルシューティング
 - [Googleログイン設定](docs/google-login.md)：OAuth・リダイレクトURL設定
 - [Stripe運用ガイド](docs/stripe-guide.md)：商品・Webhook・Customer Portal・テスト運用
 - [独自ドメイン設定・移行ガイド](docs/domain-migration.md)：本番ドメイン、Vercel Preview、メール設定

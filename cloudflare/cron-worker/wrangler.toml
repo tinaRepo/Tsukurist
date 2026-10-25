@@ -1,0 +1,59 @@
+# Cloudflare Workers: 納期通知Cronの呼び出し役（処理本体は Vercel）
+# 本番(production)と検証(staging)は別Workerとしてデプロイする。詳細は docs/cloudflare-cron.md
+#
+#   本番: npx wrangler deploy --env production
+#   検証: npx wrangler deploy --env staging
+#
+# vars / triggers は環境間で継承されないため、各 [env.*] に明示している。
+# 環境を指定せずに deploy しないこと（package.json の deploy:production / deploy:staging を使う）。
+
+main = "index.mjs"
+compatibility_date = "2025-09-01"
+
+# 公開URLは持たない（Cron Triggerからのみ実行される）
+workers_dev = false
+preview_urls = false
+
+# ------------------------------------------------------------
+# 本番: Vercel Production（tsukurist.com）を呼ぶ
+# ------------------------------------------------------------
+[env.production]
+name = "tsukurist-cron"
+
+[env.production.triggers]
+# UTC基準。23:00 UTC = 日本時間 8:00（Healthchecks.ioのCron式・タイムゾーンUTCと同じ）
+crons = ["0 23 * * *"]
+
+[env.production.vars]
+ENVIRONMENT = "production"
+# 正規URL（wwwやリダイレクトを挟まないこと）
+TARGET_URL = "https://tsukurist.com/api/cron/deadline-notify"
+
+[env.production.observability]
+enabled = true
+
+# ------------------------------------------------------------
+# 検証: Vercel Preview（検証用Supabase・Stripeテストモードに接続した環境）を呼ぶ
+# ------------------------------------------------------------
+[env.staging]
+name = "tsukurist-cron-staging"
+
+[env.staging.triggers]
+# 本番と同じ時刻。実行したくない期間は crons = [] にして再デプロイする
+crons = ["0 23 * * *"]
+
+[env.staging.vars]
+ENVIRONMENT = "staging"
+# ⚠️ 検証環境の「安定したURL」に書き換えること（デプロイごとに変わる *.vercel.app のURLは不可）
+#    例: ブランチに割り当てた独自ドメイン、または git-staging のブランチエイリアスURL
+TARGET_URL = "https://tsukurist-local.vercel.app/api/cron/deadline-notify"
+
+[env.staging.observability]
+enabled = true
+
+# ------------------------------------------------------------
+# Secrets（環境ごとに wrangler secret put <名前> --env <環境> で登録。このファイルには書かない）
+#   CRON_SECRET                     : その環境のVercelの CRON_SECRET と同じ値（本番と検証で別の値にする）
+#   VERCEL_PROTECTION_BYPASS_SECRET : 任意。検証環境でVercelのDeployment Protectionを使う場合
+#   HEALTHCHECKS_PING_URL           : 任意。環境ごとに別のチェックを使う
+# ------------------------------------------------------------

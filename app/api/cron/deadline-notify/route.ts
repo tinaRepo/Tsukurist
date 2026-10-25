@@ -24,6 +24,7 @@ type Sub = { user_id: string; endpoint: string; subscription: any };
 type TaskRow = { user_id: string; title: string; deadline: string };
 
 // 毎日JST 8時に実行され、対象タスクがある通知購読ユーザーの全端末へWeb Pushを送る。
+//   起動元は Cloudflare Workers の Cron Trigger（cloudflare/cron-worker/。docs/cloudflare-cron.md）。vercel.json には crons を置かない。
 //   Authorization: Bearer <CRON_SECRET> 必須。詳細はレスポンスに含めない（app_logs・job_runsに記録）
 export const GET = withRequestLog("cron.deadline-notify", async (request: NextRequest) => {
   if (!isCronAuthorized(request)) {

@@ -10,7 +10,7 @@ Vercelのランタイムログは保持期間が短く、検索もしづらい�
 | Level                    | `TRACE` < `DEBUG` < `INFO` < `WARN` < `ERROR` < `FATAL`                                 |
 | Appender                 | コンソール（Vercelログ）とデータベース（`app_logs`）                                    |
 | ThreadContext (MDC)      | `putContext({ userId })` で以降のログへ自動付与。`requestId` は `withRequestLog` が付与 |
-| DeleteAction（保持期間） | Cron（`/api/cron/deadline-notify`）が毎日 `purge_app_logs()` を実行                     |
+| DeleteAction（保持期間） | Cron（Cloudflare Worker → `/api/cron/deadline-notify`）が毎日 `purge_app_logs()` を実行 |
 
 ## 使い方
 
@@ -53,7 +53,7 @@ export const POST = withRequestLog("api.example", async (request: NextRequest) =
 - `service_role` 専用です。クライアント（`anon` / `authenticated`）からは読み書きできません。
 - 主な列: `logged_at` / `level` / `level_value` / `logger` / `message` / `context`(jsonb) / `request_id`
 - 保持期間: `INFO` 以下は14日、`WARN` 以上は90日（`app/api/cron/deadline-notify/route.ts` の `LOG_RETENTION_*_DAYS`）。変更時はこのガイドも更新してください。
-- Vercel CronはProductionでのみ実行されるため、Preview環境のログは自動削除されません。
+- 削除はCloudflare Worker経由のCron（本番URLのみ）が実行するため、Preview環境のログは自動削除されません。Cronが止まるとログも削除されなくなります（[Cloudflare Cron 運用ガイド](./cloudflare-cron.md)）。
 
 ## 調べ方（Supabase SQL Editor）
 

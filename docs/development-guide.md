@@ -4,12 +4,12 @@
 
 ツクリストは、依頼・タスクの納期、金額、確認用画像を管理するWebアプリです。
 
-| 領域               | 主な技術                                   |
-| ------------------ | ------------------------------------------ |
-| アプリ             | Next.js 14 (App Router)、React、TypeScript |
-| DB・認証・画像     | Supabase                                   |
-| ホスティング・Cron | Vercel                                     |
-| 決済・メール・通知 | Stripe、Resend、Web Push                   |
+| 領域 | 主な技術 |
+| --- | --- |
+| アプリ | Next.js 14 (App Router)、React、TypeScript |
+| DB・認証・画像 | Supabase |
+| ホスティング・Cron | Vercel |
+| 決済・メール・通知 | Stripe、Resend、Web Push |
 
 主なコードの場所:
 
@@ -20,9 +20,10 @@
 - `lib/server/logger.ts`: サーバーのログ出力（log4j2風。`app_logs` に保存）
 - `supabase/migrations/`: DB変更履歴
 - `scripts/`: 一回限りのデータ移行などの運用スクリプト
+- `cloudflare/cron-worker/`: 納期通知Cronを起動するCloudflare Worker（本番/検証の2環境。Vercelの `/api/cron/*` を呼ぶだけ）
 
 詳細なセットアップは[README](../README.md)、DB変更は[DB運用ガイド](./database-operations.md)を参照してください。
-Stripeのテスト・本番設定と課金挙動は[Stripe運用ガイド](./stripe-guide.md)、本番ドメインとメール設定は[独自ドメイン設定・移行ガイド](./domain-migration.md)、ログの出力・保存・調査方法は[ログ運用ガイド](./logging-guide.md)を参照してください。
+Stripeのテスト・本番設定と課金挙動は[Stripe運用ガイド](./stripe-guide.md)、本番ドメインとメール設定は[独自ドメイン設定・移行ガイド](./domain-migration.md)、ログの出力・保存・調査方法は[ログ運用ガイド](./logging-guide.md)、Cronの構成と切り替え手順は[Cloudflare Cron 運用ガイド](./cloudflare-cron.md)を参照してください。
 
 ## ローカル開発と検証
 
