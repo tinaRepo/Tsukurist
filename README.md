@@ -362,6 +362,8 @@ where id = 'ここに UUID を貼る';
 - ✅ デモモード（ログイン不要・メモリのみ・お知らせ・お問い合わせボタン付き。検索UX・お知らせ閲覧はTaskAppと共通コンポーネント、お知らせは未読管理なしの読み取り専用）
 - ✅ PWA 対応（ホーム画面追加。Androidではインストール操作、iOSではSafariの共有メニューから追加する方法を案内するバナーを表示。表示履歴はAPI管理のHttpOnly Cookieに保存）
 - ✅ LP・利用規約・プライバシーポリシー・特定商取引法ページ
+- ✅ 使い方ガイド（`/guide` + `/guide/[slug]` の9ページ。実画面の部品を使った図・折りたたみ・目次・「次に読むなら」・ページ途中のデモ誘導。本文は `lib/guide-pages.tsx` で一元管理。スクリーンショット/GIFは `<Shot />` で追加）
+- ✅ 無料ツール（`/tools`。納期逆算カレンダー・外注費の見積もり計算・依頼書テンプレート作成。ログイン不要で、入力内容はブラウザ内でのみ処理）
 
 ---
 
@@ -439,6 +441,9 @@ where id = 'ここに UUID を貼る';
 Google Search Console・Google AdSenseの設定は、[docs/seo-ads-guide.md](docs/seo-ads-guide.md) を参照してください。
 トップページ `/` は未ログイン時にサービス紹介、ログイン中はアプリを表示します。公開対象URL・`noindex`・サイトマップ・広告対象を変更する場合は、SEO・広告ガイドに沿って一緒に確認してください。
 
+- 広告を表示するのは `/`（未ログイン時）・`/guide`・`/guide/*`・`/tools`・`/tools/*` だけです（`components/AdSenseLoader.tsx`）。`/terms` `/privacy` `/tokusho` や、ログイン後の画面・デモには表示しません。
+- ガイド・無料ツールは `app/sitemap.ts` が自動でサイトマップに追加します。ページの追加手順、スクリーンショット・GIF用 `<Shot />` の使い方は [使い方ガイド・無料ツールの運用ガイド](docs/content-guide.md) を参照してください。
+
 ---
 
 ## 10. デザイン方針
@@ -468,3 +473,4 @@ Google Search Console・Google AdSenseの設定は、[docs/seo-ads-guide.md](doc
 - [Stripe運用ガイド](docs/stripe-guide.md)：商品・Webhook・Customer Portal・テスト運用
 - [独自ドメイン設定・移行ガイド](docs/domain-migration.md)：本番ドメイン、Vercel Preview、メール設定
 - [SEO・広告ガイド](docs/seo-ads-guide.md)：Search Console・AdSense運用
+- [使い方ガイド・無料ツールの運用ガイド](docs/content-guide.md)：ガイド・ツールの追加手順、図と `<Shot />`（スクリーンショット・GIF）の使い方、広告対象ページ、公開前チェックリスト
