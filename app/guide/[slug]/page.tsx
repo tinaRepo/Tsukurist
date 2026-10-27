@@ -2,7 +2,8 @@ import { Children, Fragment, isValidElement, type ReactElement, type ReactNode }
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import BackButton from "@/components/BackButton";
+import PublicHeader from "@/components/PublicHeader";
+import { PageCta } from "@/components/GuideAuth";
 import { Icon } from "@/components/TaskShared";
 import { Section, Toc, InlineCta } from "@/components/GuideParts";
 import { createPublicPageMetadata, SITE_URL } from "@/lib/seo";
@@ -61,10 +62,7 @@ export default function GuideDetailPage({ params }: { params: { slug: string } }
   return (
     <div style={{ minHeight: "100vh", background: "var(--surface)" }}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumb) }} />
-      <header className="doc-header">
-        <BackButton />
-        <span className="title">使い方ガイド</span>
-      </header>
+      <PublicHeader current="guide" />
       <main className="container-narrow" style={{ padding: "32px 24px 80px" }}>
         <nav aria-label="パンくず" className="text-meta" style={{ marginBottom: 16 }}>
           <Link href="/" style={{ color: "var(--accent)" }}>ホーム</Link> ／{" "}
@@ -110,10 +108,7 @@ export default function GuideDetailPage({ params }: { params: { slug: string } }
           ) : <span />}
         </nav>
 
-        <div className="row" style={{ justifyContent: "center", gap: 12, flexWrap: "wrap", marginTop: 40 }}>
-          <Link href="/demo" className="btn btn-secondary" style={{ textDecoration: "none" }}>デモを試す</Link>
-          <Link href="/login" className="btn btn-primary" style={{ textDecoration: "none" }}>無料で始める</Link>
-        </div>
+        <PageCta />
       </main>
     </div>
   );

@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { GuestOnly } from "@/components/GuideAuth";
 import { Field } from "@/components/TaskShared";
 
 type Form = {
@@ -130,9 +131,11 @@ export default function RequestTemplate() {
         </div>
         <div role="status" className="text-meta" style={{ minHeight: 18, marginBottom: 6, color: "var(--success)" }}>{status}</div>
         <textarea className="textarea" readOnly value={text} aria-label="作成された依頼書の文面" style={{ minHeight: 360, fontSize: 14 }} />
-        <p style={{ marginTop: 12, fontSize: 13 }}>
-          <Link href="/login" style={{ color: "var(--accent)", fontWeight: 600 }}>依頼した内容と納期を、ツクリストで管理する</Link>
-        </p>
+        <GuestOnly>
+          <p style={{ marginTop: 12, fontSize: 13 }}>
+            <Link href="/login" style={{ color: "var(--accent)", fontWeight: 600 }}>依頼した内容と納期を、ツクリストで管理する</Link>
+          </p>
+        </GuestOnly>
       </div>
     </div>
   );

@@ -1,12 +1,12 @@
 "use client";
 
-import BackButton from "@/components/BackButton";
+import PublicHeader from "@/components/PublicHeader";
 // ページメタデータ
 export default function PrivacyPage() {
   return (
     <div style={{ minHeight: "100vh", background: "var(--surface)" }}>
       <header className="doc-header">
-        <BackButton />
+        <PublicHeader />
         <span className="title">プライバシーポリシー</span>
       </header>
       <main className="container-narrow" style={{ padding: "32px 24px 80px" }}>

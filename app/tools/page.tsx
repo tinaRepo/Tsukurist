@@ -1,5 +1,6 @@
 import Link from "next/link";
-import BackButton from "@/components/BackButton";
+import PublicHeader from "@/components/PublicHeader";
+import { GuestOnly } from "@/components/GuideAuth";
 import { Icon } from "@/components/TaskShared";
 import { createPublicPageMetadata } from "@/lib/seo";
 import { TOOLS } from "@/lib/tools";
@@ -13,10 +14,7 @@ export const metadata = createPublicPageMetadata(
 export default function ToolsPage() {
   return (
     <div style={{ minHeight: "100vh", background: "var(--surface)" }}>
-      <header className="doc-header">
-        <BackButton />
-        <span className="title">無料ツール</span>
-      </header>
+      <PublicHeader current="tools" />
       <main className="container-narrow" style={{ padding: "32px 24px 80px" }}>
         <div style={{ textAlign: "center", marginBottom: 40 }}>
           <h1 style={{ fontSize: 22, marginBottom: 8 }}>外注・依頼に役立つ無料ツール</h1>
@@ -36,14 +34,16 @@ export default function ToolsPage() {
             </Link>
           ))}
         </div>
-        <div className="card" style={{ marginTop: 32, padding: "20px", textAlign: "center" }}>
-          <div style={{ fontWeight: 600, marginBottom: 6 }}>依頼の進み具合は、ツクリストで一覧管理</div>
-          <p className="text-muted" style={{ fontSize: 13, lineHeight: 1.8, marginBottom: 14 }}>納期・金額・確認用画像をまとめて管理し、納期が近づくとお知らせします。</p>
-          <div className="row" style={{ justifyContent: "center", gap: 12, flexWrap: "wrap" }}>
-            <Link href="/guide" className="btn btn-secondary" style={{ textDecoration: "none" }}>使い方ガイド</Link>
-            <Link href="/login" className="btn btn-primary" style={{ textDecoration: "none" }}>無料で始める</Link>
+        <GuestOnly>
+          <div className="card" style={{ marginTop: 32, padding: "20px", textAlign: "center" }}>
+            <div style={{ fontWeight: 600, marginBottom: 6 }}>依頼の進み具合は、ツクリストで一覧管理</div>
+            <p className="text-muted" style={{ fontSize: 13, lineHeight: 1.8, marginBottom: 14 }}>納期・金額・確認用画像をまとめて管理し、納期が近づくとお知らせします。</p>
+            <div className="row" style={{ justifyContent: "center", gap: 12, flexWrap: "wrap" }}>
+              <Link href="/guide" className="btn btn-secondary" style={{ textDecoration: "none" }}>使い方ガイド</Link>
+              <Link href="/login" className="btn btn-primary" style={{ textDecoration: "none" }}>無料で始める</Link>
+            </div>
           </div>
-        </div>
+        </GuestOnly>
       </main>
     </div>
   );

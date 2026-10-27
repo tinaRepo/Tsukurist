@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { addDays, formatDay, parseDateStr, todayStr } from "@/lib/calendar";
+import { GuestOnly } from "@/components/GuideAuth";
 import { Field, Icon } from "@/components/TaskShared";
 
 type Step = { id: number; name: string; days: string };
@@ -138,9 +139,11 @@ export default function DeadlineCalculator() {
               <span>納期</span><span>{formatDay(deadline)}</span>
             </div>
           </div>
-          <p style={{ marginTop: 14, fontSize: 13 }}>
-            <Link href="/login" style={{ color: "var(--accent)", fontWeight: 600 }}>この日程をツクリストに登録して、納期が近づいたら通知を受け取る</Link>
-          </p>
+          <GuestOnly>
+            <p style={{ marginTop: 14, fontSize: 13 }}>
+              <Link href="/login" style={{ color: "var(--accent)", fontWeight: 600 }}>この日程をツクリストに登録して、納期が近づいたら通知を受け取る</Link>
+            </p>
+          </GuestOnly>
         </div>
       )}
     </div>

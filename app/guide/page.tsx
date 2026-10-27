@@ -1,5 +1,5 @@
 import Link from "next/link";
-import BackButton from "@/components/BackButton";
+import PublicHeader from "@/components/PublicHeader";
 import { Icon } from "@/components/TaskShared";
 import { GUIDE_PAGES } from "@/lib/guide-pages";
 
@@ -7,10 +7,7 @@ import { GUIDE_PAGES } from "@/lib/guide-pages";
 export default function GuidePage() {
   return (
     <div style={{ minHeight: "100vh", background: "var(--surface)" }}>
-      <header className="doc-header">
-        <BackButton />
-        <span className="title">使い方ガイド</span>
-      </header>
+      <PublicHeader current="guide" />
       <main className="container-narrow" style={{ padding: "32px 24px 80px" }}>
         <div style={{ textAlign: "center", marginBottom: 40 }}>
           <h1 style={{ fontSize: 22, marginBottom: 8 }}>ツクリスト 使い方ガイド</h1>

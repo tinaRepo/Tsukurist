@@ -592,6 +592,7 @@ export default function DemoApp({ returnPath, onBack }: {
         <div className="footer-links">
           {[
             { href: "/guide", label: "使い方" },
+            { href: "/tools", label: "無料ツール" },
             { href: "/terms", label: "利用規約" },
             { href: "/privacy", label: "プライバシーポリシー" },
             { href: "/tokusho", label: "特定商取引法" },

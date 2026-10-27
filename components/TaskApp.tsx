@@ -231,9 +231,9 @@ function ImageSection({ task, plan, isOnline, onUpdated }: {
                 </button>
                 {url && (
                   <button onClick={e => { e.stopPropagation(); handleDownload(url, img.file_name); }}
-                      title={!isOnline ? "ダウンロードはオンライン復帰後に利用できます" : "ダウンロード"}
-                      aria-label={`${img.file_name}をダウンロード`} disabled={!isOnline}
-                      className="icon-btn" style={{
+                    title={!isOnline ? "ダウンロードはオンライン復帰後に利用できます" : "ダウンロード"}
+                    aria-label={`${img.file_name}をダウンロード`} disabled={!isOnline}
+                    className="icon-btn" style={{
                       position: "absolute", bottom: 4, right: 4, width: 22, height: 22,
                       background: "rgba(0,0,0,0.55)", border: "none", opacity: isOnline ? 1 : 0.5,
                       cursor: isOnline ? "pointer" : "not-allowed",
@@ -307,7 +307,7 @@ export default function TaskApp() {
   const [syncing, setSyncing] = useState(false);
   const [offlineMessage, setOfflineMessage] = useState<string | null>(null);
   const syncingChanges = useRef<Promise<void> | null>(null);
-  const loadRef = useRef<() => Promise<void>>(async () => {});
+  const loadRef = useRef<() => Promise<void>>(async () => { });
   const loadSequence = useRef(0);
   const taskOverrides = useRef(new Map<string, Task | null>());
   const thumbnailPathsByTask = useRef(new Map<string, string>());
@@ -1159,6 +1159,10 @@ export default function TaskApp() {
                     <span>アカウントを削除</span>
                   </button>
                 )}
+                <button onClick={() => window.location.href = "/tools"} className="user-menu-item">
+                  <span className="user-menu-item-icon"><Icon name="calendar" size={17} /></span>
+                  <span>無料ツール</span>
+                </button>
                 <button onClick={requestLogout} disabled={!isOnline}
                   title={!isOnline ? "ログアウトはオンライン復帰後に利用できます" : undefined} className="user-menu-item danger" style={{ fontWeight: 600 }}>
                   <span className="user-menu-item-icon"><Icon name="logout" size={17} /></span>
@@ -1793,6 +1797,7 @@ export default function TaskApp() {
         <div className="footer-links">
           {[
             { href: "/guide", label: "使い方" },
+            { href: "/tools", label: "無料ツール" },
             { href: "/terms", label: "利用規約" },
             { href: "/privacy", label: "プライバシーポリシー" },
             { href: "/tokusho", label: "特定商取引法" },

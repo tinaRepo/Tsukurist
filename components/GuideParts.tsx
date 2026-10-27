@@ -1,5 +1,6 @@
 import Image from "next/image";
 import type { ReactNode } from "react";
+import { GuestOnly } from "@/components/GuideAuth";
 
 // ガイドページ共通の部品（server componentで使える。"use client"は不要）
 
@@ -73,23 +74,27 @@ export function Toc({ titles }: { titles: string[] }) {
   );
 }
 
-// ページ途中に挟む「デモで試す」誘導
+// ページ途中に挟む「デモで試す」誘導（ログイン中は表示しない）
 export function InlineCta() {
   return (
-    <div className="card row" style={{ padding: "14px 18px", gap: 12, justifyContent: "space-between", flexWrap: "wrap", margin: "8px 0 32px" }}>
-      <span style={{ fontSize: 14, fontWeight: 600, lineHeight: 1.6 }}>読むより触るほうが早いときは、登録なしのデモをどうぞ。</span>
-      <a href="/demo" className="btn btn-secondary btn-sm" style={{ textDecoration: "none" }}>デモを試す</a>
-    </div>
+    <GuestOnly>
+      <div className="card row" style={{ padding: "14px 18px", gap: 12, justifyContent: "space-between", flexWrap: "wrap", margin: "8px 0 32px" }}>
+        <span style={{ fontSize: 14, fontWeight: 600, lineHeight: 1.6 }}>読むより触るほうが早いときは、登録なしのデモをどうぞ。</span>
+        <a href="/demo" className="btn btn-secondary btn-sm" style={{ textDecoration: "none" }}>デモを試す</a>
+      </div>
+    </GuestOnly>
   );
 }
 
-// 実際のスクリーンショット・操作GIF用。画像は public/guide/ に置き、src="/guide/xxx.png" のように指定する
-export function Shot({ src, alt, width, height, caption }: {
-  src: string; alt: string; width: number; height: number; caption?: string;
+// 実際のスクリーンショット・操作GIF用。画像は public/guide/ に置き、src="/guide/xxx.png" のように指定する。
+// width / height は画像の実寸（ピクセル）。表示サイズではなく、レイアウトのずれ防止と縦横比の指定に使う。
+// maxWidth を指定すると、その幅（px）を上限に中央寄せで表示する（スマホ画面の縦長スクショ向け）。
+export function Shot({ src, alt, width, height, caption, maxWidth }: {
+  src: string; alt: string; width: number; height: number; caption?: string; maxWidth?: number;
 }) {
   return (
-    <figure style={{ margin: "0 0 16px" }}>
-      <Image src={src} alt={alt} width={width} height={height} sizes="(max-width: 720px) 100vw, 672px"
+    <figure style={{ margin: "0 auto 16px", maxWidth }}>
+      <Image src={src} alt={alt} width={width} height={height} sizes={`(max-width: 720px) 100vw, ${maxWidth ?? 672}px`}
         unoptimized={src.endsWith(".gif")}
         style={{ width: "100%", height: "auto", borderRadius: "var(--radius-md)", border: "1px solid var(--border-soft)" }} />
       {caption && <figcaption className="text-meta" style={{ marginTop: 8, lineHeight: 1.7 }}>{caption}</figcaption>}

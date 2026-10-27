@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { GuestOnly } from "@/components/GuideAuth";
 import { Field, Icon } from "@/components/TaskShared";
 
 type Row = { id: number; name: string; price: string; qty: string };
@@ -104,9 +105,11 @@ export default function CostCalculator() {
         {withholding && line("源泉徴収税額（差し引き）", `− ${yen(r.wh)}`)}
         {line("お支払い総額", yen(r.total), true)}
         {r.hourly !== null && <div className="text-meta" style={{ marginTop: 10 }}>時給換算（税抜 ÷ 作業時間）: 約 {yen(r.hourly)}</div>}
-        <p style={{ marginTop: 14, fontSize: 13 }}>
-          <Link href="/login" style={{ color: "var(--accent)", fontWeight: 600 }}>この金額を依頼ごとに記録して、合計を一覧で確認する</Link>
-        </p>
+        <GuestOnly>
+          <p style={{ marginTop: 14, fontSize: 13 }}>
+            <Link href="/login" style={{ color: "var(--accent)", fontWeight: 600 }}>この金額を依頼ごとに記録して、合計を一覧で確認する</Link>
+          </p>
+        </GuestOnly>
       </div>
     </div>
   );
