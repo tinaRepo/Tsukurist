@@ -30,6 +30,7 @@ import {
 } from "@/lib/offline-tasks";
 import { TagPicker, TagManagerModal } from "./TagPicker";
 import PushNotificationToggle from "./PushNotificationToggle";
+import NotifyHourSelect from "./NotifyHourSelect";
 const NotificationsModal = dynamic(() => import("./NotificationsModal"), { ssr: false });
 const ContactModal = dynamic(() => import("./ContactModal"), { ssr: false });
 const InstallPromptBanner = dynamic(() => import("./InstallPromptBanner"), { ssr: false });
@@ -1116,6 +1117,7 @@ export default function TaskApp() {
                   </button>
                 )}
                 <PushNotificationToggle enabled={isOnline} />
+                <NotifyHourSelect userId={user?.id ?? null} enabled={isOnline} />
                 <button onClick={() => { setShowTagManager(true); setShowUserMenu(false); }} disabled={!isOnline}
                   title={!isOnline ? "タグ管理はオンライン復帰後に利用できます" : undefined} className="user-menu-item">
                   <span className="user-menu-item-icon"><Icon name="tag" size={17} /></span>

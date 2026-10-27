@@ -202,9 +202,9 @@ npx web-push generate-vapid-keys
 
 ### Cron Jobの認証（CRON_SECRET）
 
-納期通知は **Cloudflare Workers の Cron Trigger**（**毎日 8:00・日本時間**）が、`/api/cron/deadline-notify` を呼び出して実行します。Workerのコードは `cloudflare/cron-worker/` にあり、**本番(production)用と検証(staging)用の2つのWorker**として別々にデプロイします（Vercelの Production / Preview の環境分離に対応）。セットアップ・切り替え手順・トラブルシューティングは [Cloudflare Cron 運用ガイド](docs/cloudflare-cron.md) を参照してください。
-処理本体はVercel側のルートです。納期が7日以内の未完了タスクがあるユーザーのうち、プッシュ通知を有効にしている端末へ送信し、同じ実行で、期限切れの記録（通知ログ・Cron実行記録・Stripeイベント記録）と、保持期間を過ぎたアプリログ（`app_logs`）も削除します。
-Cloudflareの Cron 式はUTC基準で、`0 23 * * *` が毎日8:00（日本時間）に相当します。Healthchecks.ioもCron式 `0 23 * * *`、タイムゾーン `UTC`、Grace Time `15 minutes` に設定してください。
+納期通知は **Cloudflare Workers の Cron Trigger**（**毎時0分**）が、`/api/cron/deadline-notify` を呼び出して実行します。ルート側で、ユーザーが設定した通知時刻（日本時間・既定8時。ユーザーメニューの「通知時刻」で0〜23時から選択）に一致するユーザーにだけ送信します。Workerのコードは `cloudflare/cron-worker/` にあり、**本番(production)用と検証(staging)用の2つのWorker**として別々にデプロイします（Vercelの Production / Preview の環境分離に対応）。セットアップ・切り替え手順・トラブルシューティングは [Cloudflare Cron 運用ガイド](docs/cloudflare-cron.md) を参照してください。
+処理本体はVercel側のルートです。納期が7日以内の未完了タスクがあるユーザーのうち、プッシュ通知を有効にしている端末へ送信し、日本時間4時台の実行（1日1回）で、期限切れの記録（通知ログ・Cron実行記録・Stripeイベント記録）と、保持期間を過ぎたアプリログ（`app_logs`）も削除します。
+Cloudflareの Cron 式は `0 * * * *`（毎時0分）です。Healthchecks.ioもCron式 `0 * * * *`、タイムゾーン `UTC`、Grace Time `15 minutes` に設定してください。`/api/health?deep=1` は最終成功が120分以内かを確認します。
 このルートは **`Authorization: Bearer <CRON_SECRET>` ヘッダーが一致しないリクエストを 401 で拒否**します
 （`CRON_SECRET` が未設定・16 文字未満の場合も常に拒否）。`vercel.json` には `crons` を設定しません（Vercel Cronは使いません）。
 
@@ -323,7 +323,7 @@ where id = 'ここに UUID を貼る';
 - ✅ 最終ログイン日時の記録
 
 **通知**
-- ✅ 毎朝8時（日本時間）のプッシュ通知（納期 7 日以内。同じ日の重複送信防止。Cron は `CRON_SECRET` のBearer認証で保護。複数端末で購読可能）
+- ✅ プッシュ通知（既定は毎朝8時・日本時間。ユーザーメニューの「通知時刻」で0〜23時に変更可。納期 7 日以内。同じ日の重複送信防止。Cron は `CRON_SECRET` のBearer認証で保護。複数端末で購読可能）
 - ✅ 管理者がお知らせを新規作成した時、配信対象ユーザーへプッシュ通知
 - ✅ 管理者が新しいバージョン情報を登録した時、購読中の全ユーザーへプッシュ通知
 - ✅ お知らせ・リリースノート（未読バッジ通知・モーダル表示。取得・未読判定は`hooks/useNotifications.ts`に一本化）

@@ -4,6 +4,8 @@
 #   本番: npx wrangler deploy --env production
 #   検証: npx wrangler deploy --env staging
 #
+# Cronは毎時0分に起動する。ユーザーごとの通知時刻（user_settings.notify_hour・JST）に
+# 一致するユーザーにだけ送信する判定は、Vercel側のルート（app/api/cron/deadline-notify）が行う。
 # vars / triggers は環境間で継承されないため、各 [env.*] に明示している。
 # 環境を指定せずに deploy しないこと（package.json の deploy:production / deploy:staging を使う）。
 
@@ -21,8 +23,8 @@ preview_urls = false
 name = "tsukurist-cron"
 
 [env.production.triggers]
-# UTC基準。23:00 UTC = 日本時間 8:00（Healthchecks.ioのCron式・タイムゾーンUTCと同じ）
-crons = ["0 23 * * *"]
+# 毎時0分（UTC基準。時単位のため日本時間でも毎時0分。Healthchecks.ioも Cron式 0 * * * *・タイムゾーンUTC）
+crons = ["0 * * * *"]
 
 [env.production.vars]
 ENVIRONMENT = "production"
@@ -39,8 +41,8 @@ enabled = true
 name = "tsukurist-cron-staging"
 
 [env.staging.triggers]
-# 本番と同じ時刻。実行したくない期間は crons = [] にして再デプロイする
-crons = ["0 23 * * *"]
+# 本番と同じ毎時0分。実行したくない期間は crons = [] にして再デプロイする
+crons = ["0 * * * *"]
 
 [env.staging.vars]
 ENVIRONMENT = "staging"

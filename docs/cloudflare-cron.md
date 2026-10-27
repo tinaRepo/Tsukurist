@@ -1,12 +1,12 @@
 # Cloudflare Cron 運用ガイド
 
-納期通知のCron（毎日 日本時間8:00）は、Vercel Cronではなく **Cloudflare Workers の Cron Trigger** から起動します。Workerは `/api/cron/deadline-notify` を `Authorization: Bearer <CRON_SECRET>` 付きで呼ぶだけで、通知の送信・古い記録とログの削除・実行記録（`job_runs`）・監視通知は Vercel 側のルートが行います。
+納期通知のCron（毎時0分に起動し、各ユーザーの通知時刻（既定 日本時間8:00）のユーザーにだけ送信）は、Vercel Cronではなく **Cloudflare Workers の Cron Trigger** から起動します。Workerは `/api/cron/deadline-notify` を `Authorization: Bearer <CRON_SECRET>` 付きで呼ぶだけで、通知の送信・古い記録とログの削除・実行記録（`job_runs`）・監視通知は Vercel 側のルートが行います。
 
 **本番(production)と検証(staging)は、別々のWorkerとしてデプロイします。** Vercelの Production / Preview の環境変数分離（Supabase・Stripe・`CRON_SECRET` など）に合わせた構成です。
 
 ```
-[本番]  Worker: tsukurist-cron          ─ Cron 23:00 UTC ─▶ https://tsukurist.com/api/cron/deadline-notify          (Vercel Production)
-[検証]  Worker: tsukurist-cron-staging  ─ Cron 23:00 UTC ─▶ https://<検証環境の安定したURL>/api/cron/deadline-notify  (Vercel Preview)
+[本番]  Worker: tsukurist-cron          ─ Cron 毎時0分 ─▶ https://tsukurist.com/api/cron/deadline-notify          (Vercel Production)
+[検証]  Worker: tsukurist-cron-staging  ─ Cron 毎時0分 ─▶ https://<検証環境の安定したURL>/api/cron/deadline-notify  (Vercel Preview)
                           └─ どちらも Bearer <その環境の CRON_SECRET> で GET
                                └─ Vercel: 通知送信 / purge_app_logs / job_runs / Healthchecks.io ping（その環境のDB・設定を使用）
 ```
@@ -17,7 +17,7 @@
 | --- | --- | --- |
 | Worker名 | `tsukurist-cron` | `tsukurist-cron-staging` |
 | 呼び出し先 `TARGET_URL` | `https://tsukurist.com/api/cron/deadline-notify` | 検証環境の安定したURL（要書き換え） |
-| スケジュール | `0 23 * * *`（日本時間8:00） | 同じ。止めたい期間は `crons = []` |
+| スケジュール | `0 * * * *`（毎時0分） | 同じ。止めたい期間は `crons = []` |
 | `CRON_SECRET`（Worker secret） | Vercel **Production** の `CRON_SECRET` と同じ値 | Vercel **Preview** の `CRON_SECRET` と同じ値 |
 | `VERCEL_PROTECTION_BYPASS_SECRET` | 不要 | Previewに Deployment Protection がある場合に必要 |
 | `HEALTHCHECKS_PING_URL`（任意） | 本番用のチェック | 検証用の別チェック（または未設定） |
@@ -87,7 +87,7 @@ npm run deploy:staging
 
 Vercel Cronを残したままWorkerを有効にしても、`notification_log` により通知は重複しません。ただし2つのCronが同時に走る期間を作らないよう、次の順で切り替えてください。
 
-1. 本番Workerをデプロイする（上記）。Cloudflare Dashboard → Workers & Pages → `tsukurist-cron` → **Settings → Trigger Events** に Cron `0 23 * * *` が表示されることを確認する。
+1. 本番Workerをデプロイする（上記）。Cloudflare Dashboard → Workers & Pages → `tsukurist-cron` → **Settings → Trigger Events** に Cron `0 * * * *` が表示されることを確認する。
 2. `vercel.json` の `crons` を削除する（本リポジトリでは `{}` にしている）。コミットして main にデプロイする。
 3. Vercel Dashboard → Project → **Settings → Cron Jobs** に `/api/cron/deadline-notify` が残っていないことを確認する。
 4. 翌朝 8:00 以降に、実行されたことを確認する（次項）。
@@ -115,8 +115,8 @@ limit 20;
 ```
 
 - Cloudflare側のログ: `npm run tail:production` / `npm run tail:staging`、または Dashboard → Workers & Pages → 対象Worker → **Logs**。ログの JSON に `environment`（production / staging）が入ります。
-- `/api/health?deep=1`（Bearer必須）で、最後の成功が約26時間以内か確認できます（各環境のURLで）。
-- Healthchecks.io の期待スケジュールは従来どおり Cron式 `0 23 * * *`、タイムゾーン `UTC`、Grace Time `15 minutes` です。本番と検証で別のチェックを作ってください。
+- `/api/health?deep=1`（Bearer必須）で、最後の成功が約2時間以内か確認できます（各環境のURLで）。
+- Healthchecks.io の期待スケジュールは従来どおり Cron式 `0 * * * *`、タイムゾーン `UTC`、Grace Time `15 minutes` です。本番と検証で別のチェックを作ってください。
 
 ## 検証環境での動作確認（推奨の流れ）
 
@@ -125,7 +125,7 @@ limit 20;
 1. 検証環境（Preview）に、通知を有効にしたテストユーザーと、7日以内に納期が来る未完了タスクを用意する。
 2. 検証Workerのスケジュールを一時的に近い時刻（例: `crons = ["*/5 * * * *"]` のように数分後）にして `npm run deploy:staging` する。
 3. `npm run tail:staging` と、検証Supabaseの `job_runs` / `app_logs` で、実行・通知送信を確認する。
-4. 確認後、スケジュールを `0 23 * * *` に戻して再デプロイする。
+4. 確認後、スケジュールを `0 * * * *` に戻して再デプロイする。
 
 ## ローカルでの動作確認
 
@@ -159,5 +159,5 @@ curl "http://localhost:8787/__scheduled?cron=0+23+*+*+*"
 ## 補足
 
 - Cloudflare Workers の Cron Trigger は Free プランでも利用できます。アカウントあたりのCron Trigger数に上限があり、本番・検証で2つ使います。上限・料金は Cloudflare の最新のページで確認してください。
-- Vercel Cron（Hobby）は1日1回までの制限があり、Productionデプロイでしか動きませんでした。Cloudflareに移すとこの制約がなくなり、検証環境でもCronを動かせます。将来、`user_settings.notify_hour`（ユーザーごとの通知時刻）に対応して毎時実行にする場合も、`wrangler.toml` の `crons` を `0 * * * *` に変更し、ルート側を時刻対応にするだけで済みます。
+- Vercel Cron（Hobby）は1日1回までの制限があり、Productionデプロイでしか動きませんでした。Cloudflareに移すとこの制約がなくなり、検証環境でもCronを動かせます。ユーザーごとの通知時刻（`user_settings.notify_hour`・日本時間）に対応するため、毎時実行にしています。ルート側が「現在のJST時 = notify_hour」のユーザーだけを対象にし、`user_settings` が無いユーザーは8時として扱います。通知時刻を変えても、`notification_log` により同じ日の通知は1回までです。古い記録・ログの削除は、日本時間4時台の実行でのみ行います。Cloudflareの無料プランでも、Cron Triggerは1本のままで足ります。
 - ログの保持期間を過ぎた `app_logs` の削除はこのCronに含まれます。Cronを止めると、その環境のログが削除されなくなります。

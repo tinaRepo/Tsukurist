@@ -15,6 +15,8 @@ const DAYS_AHEAD = 7;            // 納期までこの日数以内のタスク�
 const CONCURRENCY = 10;
 const TIME_BUDGET_MS = 50_000;   // maxDuration(60秒)より手前で打ち切る
 const PAGE = 1000;
+const DEFAULT_NOTIFY_HOUR = 8;   // user_settings が無い（未設定）ユーザーの通知時刻（JST）
+const CLEANUP_HOUR_JST = 4;      // 古い記録の削除は1日1回、この時刻（JST）の実行で行う
 
 // ログの保持期間（日）。INFO以下 / WARN以上。変更時は docs/logging-guide.md も更新すること
 const LOG_RETENTION_LOW_DAYS = 14;
@@ -23,7 +25,8 @@ const LOG_RETENTION_HIGH_DAYS = 90;
 type Sub = { user_id: string; endpoint: string; subscription: any };
 type TaskRow = { user_id: string; title: string; deadline: string };
 
-// 毎日JST 8時に実行され、対象タスクがある通知購読ユーザーの全端末へWeb Pushを送る。
+// 毎時0分に実行され、「通知時刻（user_settings.notify_hour・JST）が現在のJST時」のユーザーのうち、
+// 対象タスクがある通知購読ユーザーの全端末へWeb Pushを送る。
 //   起動元は Cloudflare Workers の Cron Trigger（cloudflare/cron-worker/。docs/cloudflare-cron.md）。vercel.json には crons を置かない。
 //   Authorization: Bearer <CRON_SECRET> 必須。詳細はレスポンスに含めない（app_logs・job_runsに記録）
 export const GET = withRequestLog("cron.deadline-notify", async (request: NextRequest) => {
@@ -40,11 +43,12 @@ export const GET = withRequestLog("cron.deadline-notify", async (request: NextRe
   // JSTの現在日時
   const jst = new Date(Date.now() + 9 * 3600_000);
   const today = jst.toISOString().slice(0, 10);
+  const jstHour = jst.getUTCHours();
   const limitDate = new Date(Date.UTC(jst.getUTCFullYear(), jst.getUTCMonth(), jst.getUTCDate() + DAYS_AHEAD))
     .toISOString().slice(0, 10);
 
   try {
-    await cleanup(admin);
+    if (jstHour === CLEANUP_HOUR_JST) await cleanup(admin);
 
     webpush.setVapidDetails(
       process.env.VAPID_EMAIL!, process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!, process.env.VAPID_PRIVATE_KEY!
@@ -56,8 +60,13 @@ export const GET = withRequestLog("cron.deadline-notify", async (request: NextRe
     const subsByUser = new Map<string, Sub[]>();
     for (const s of subs) subsByUser.set(s.user_id, [...(subsByUser.get(s.user_id) ?? []), s]);
 
-    // 2) 通知を有効にしている全ユーザーを対象にする
-    const targets = new Set(subsByUser.keys());
+    // 2) 通知時刻が「今のJST時」のユーザーだけを対象にする（user_settings が無いユーザーは既定の8時）
+    const settings = subsByUser.size === 0 ? [] : await fetchAll<{ user_id: string; notify_hour: number }>(range =>
+      admin.from("user_settings").select("user_id, notify_hour").order("user_id").range(range[0], range[1]));
+    const hourByUser = new Map(settings.map(s => [s.user_id, s.notify_hour]));
+    const targets = new Set(
+      Array.from(subsByUser.keys()).filter(uid => (hourByUser.get(uid) ?? DEFAULT_NOTIFY_HOUR) === jstHour)
+    );
 
     // 3) 納期が近い未完了タスク（部分インデックス idx_tasks_active_deadline を利用）
     const tasks = targets.size === 0 ? [] : await fetchAll<TaskRow>(range => admin.from("tasks")
@@ -72,7 +81,7 @@ export const GET = withRequestLog("cron.deadline-notify", async (request: NextRe
       byUser.set(t.user_id, [...(byUser.get(t.user_id) ?? []), t]);
     }
 
-    // 4) 同じ日の重複送信を防ぐ（先に記録できたユーザーだけ送る）
+    // 4) 同じ日の重複送信を防ぐ（先に記録できたユーザーだけ送る）。通知時刻を変えても1日1回まで
     const userIds = Array.from(byUser.keys());
     const claimedIds = new Set<string>();
     for (let i = 0; i < userIds.length; i += 500) {
@@ -83,7 +92,7 @@ export const GET = withRequestLog("cron.deadline-notify", async (request: NextRe
       if (error) throw error;
       (data ?? []).forEach(r => claimedIds.add(r.user_id));
     }
-    log.debug("targets resolved", { subscriptions: subs.length, targets: targets.size, usersWithTasks: userIds.length, claimed: claimedIds.size });
+    log.debug("targets resolved", { jstHour, subscriptions: subs.length, targets: targets.size, usersWithTasks: userIds.length, claimed: claimedIds.size });
 
     // 5) 送信（並列10・時間予算あり）
     const appUrl = process.env.NEXT_PUBLIC_APP_URL!;
@@ -127,7 +136,7 @@ export const GET = withRequestLog("cron.deadline-notify", async (request: NextRe
     const total = sent + failed;
     const bad = truncated || (total > 0 && (sent === 0 || failed / total >= 0.5));
     const status = bad ? "partial" : "success";
-    const detail = `targets=${targets.size} users=${claimedIds.size} sent=${sent} failed=${failed}${truncated ? " truncated" : ""}`;
+    const detail = `hour=${jstHour} targets=${targets.size} users=${claimedIds.size} sent=${sent} failed=${failed}${truncated ? " truncated" : ""}`;
     await finishJobRun(admin, runId, { status, sent, failed, detail });
 
     if (bad) {
@@ -163,6 +172,7 @@ async function fetchAll<T>(
 }
 
 // 古い記録の削除（notification_log 30日 / job_runs 90日 / stripe_events 30日 / app_logs 14日・90日）
+// 毎時実行の中で、JST 4時の実行でのみ呼ぶ（1日1回）
 async function cleanup(admin: ReturnType<typeof createAdminClient>) {
   const ago = (days: number) => new Date(Date.now() - days * 86400_000);
   await admin.from("notification_log").delete().lt("notify_date", ago(30).toISOString().slice(0, 10));

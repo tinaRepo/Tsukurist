@@ -9,8 +9,8 @@ export const runtime = "nodejs";
 
 const log = getLogger("api.health");
 
-// Cronが正常に動いているとみなす最大間隔（毎日実行 + 2時間の余裕）
-const CRON_MAX_AGE_MINUTES = 1560;
+// Cronが正常に動いているとみなす最大間隔（毎時実行 + 1時間の余裕）
+const CRON_MAX_AGE_MINUTES = 120;
 
 // 死活監視用エンドポイント（UptimeRobot / Better Stack / Healthchecks 等から呼ぶ）
 //   GET /api/health            : アプリとDBに到達できれば200（認証不要。詳細は返さない）

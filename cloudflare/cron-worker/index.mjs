@@ -1,8 +1,8 @@
 // ============================================================
 // Cloudflare Workers Cron Trigger → Vercel の Cron ルートを呼び出す
 // ------------------------------------------------------------
-// 毎日 23:00 UTC（= 日本時間 8:00）に、/api/cron/deadline-notify を
-// Authorization: Bearer <CRON_SECRET> 付きで GET する。処理本体は Vercel 側（app/api/cron/deadline-notify/route.ts）。
+// 毎時0分に、/api/cron/deadline-notify を
+// Authorization: Bearer <CRON_SECRET> 付きで GET する。ユーザーごとの通知時刻（JST）に一致する人への送信判定も含め、処理本体は Vercel 側（app/api/cron/deadline-notify/route.ts）。
 // 本番(production)と検証(staging)は別々のWorkerとしてデプロイし、設定・secretを完全に分ける（wrangler.toml の [env.*]）。
 //
 //   ENVIRONMENT                     : "production" / "staging"（ログ用。wrangler.toml の [vars]）
