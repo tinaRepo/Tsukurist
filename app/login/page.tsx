@@ -300,6 +300,7 @@ export default function LoginPage() {
           {[
             { href: "/", label: "サービス紹介" },
             { href: "/guide", label: "使い方" },
+            { href: "/tools", label: "無料ツール" },
             { href: "/terms", label: "利用規約" },
             { href: "/privacy", label: "プライバシー" },
             { href: "/tokusho", label: "特定商取引法" },
