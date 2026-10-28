@@ -1,15 +1,11 @@
-"use client";
+import Breadcrumb from "@/components/Breadcrumb";
 
-import PublicHeader from "@/components/PublicHeader";
-// ページメタデータ
 export default function PrivacyPage() {
   return (
     <div style={{ minHeight: "100vh", background: "var(--surface)" }}>
-      <header className="doc-header">
-        <PublicHeader />
-        <span className="title">プライバシーポリシー</span>
-      </header>
       <main className="container-narrow" style={{ padding: "32px 24px 80px" }}>
+        <Breadcrumb items={[{ label: "プライバシーポリシー" }]} />
+        <h1 style={{ fontSize: 24, lineHeight: 1.4, marginBottom: 12 }}>プライバシーポリシー</h1>
         <p className="text-meta" style={{ marginBottom: 24 }}>最終更新日：2026年11月01日</p>
 
         <Section title="1. 取得する情報">

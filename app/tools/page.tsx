@@ -1,5 +1,5 @@
 import Link from "next/link";
-import PublicHeader from "@/components/PublicHeader";
+import Breadcrumb from "@/components/Breadcrumb";
 import { GuestOnly } from "@/components/GuideAuth";
 import { Icon } from "@/components/TaskShared";
 import { createPublicPageMetadata } from "@/lib/seo";
@@ -14,8 +14,8 @@ export const metadata = createPublicPageMetadata(
 export default function ToolsPage() {
   return (
     <div style={{ minHeight: "100vh", background: "var(--surface)" }}>
-      <PublicHeader current="tools" />
       <main className="container-narrow" style={{ padding: "32px 24px 80px" }}>
+        <Breadcrumb items={[{ label: "無料ツール" }]} />
         <div style={{ textAlign: "center", marginBottom: 40 }}>
           <h1 style={{ fontSize: 22, marginBottom: 8 }}>外注・依頼に役立つ無料ツール</h1>
           <p className="text-muted" style={{ fontSize: 14, lineHeight: 1.8 }}>

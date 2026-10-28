@@ -2,11 +2,11 @@ import { Children, Fragment, isValidElement, type ReactElement, type ReactNode }
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import PublicHeader from "@/components/PublicHeader";
+import Breadcrumb from "@/components/Breadcrumb";
 import { PageCta } from "@/components/GuideAuth";
 import { Icon } from "@/components/TaskShared";
 import { Section, Toc, InlineCta } from "@/components/GuideParts";
-import { createPublicPageMetadata, SITE_URL } from "@/lib/seo";
+import { createPublicPageMetadata } from "@/lib/seo";
 import { GUIDE_PAGES, getGuidePage } from "@/lib/guide-pages";
 
 export function generateStaticParams() {
@@ -49,25 +49,10 @@ export default function GuideDetailPage({ params }: { params: { slug: string } }
   const parts = Children.toArray((page.body as ReactElement<{ children?: ReactNode }>).props.children);
   const mid = parts.length >= 4 ? Math.ceil(parts.length / 2) : -1;
 
-  const breadcrumb = {
-    "@context": "https://schema.org",
-    "@type": "BreadcrumbList",
-    itemListElement: [
-      { "@type": "ListItem", position: 1, name: "ツクリスト", item: SITE_URL },
-      { "@type": "ListItem", position: 2, name: "使い方ガイド", item: `${SITE_URL}/guide` },
-      { "@type": "ListItem", position: 3, name: page.title, item: `${SITE_URL}/guide/${page.slug}` },
-    ],
-  };
-
   return (
     <div style={{ minHeight: "100vh", background: "var(--surface)" }}>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumb) }} />
-      <PublicHeader current="guide" />
       <main className="container-narrow" style={{ padding: "32px 24px 80px" }}>
-        <nav aria-label="パンくず" className="text-meta" style={{ marginBottom: 16 }}>
-          <Link href="/" style={{ color: "var(--accent)" }}>ホーム</Link> ／{" "}
-          <Link href="/guide" style={{ color: "var(--accent)" }}>使い方ガイド</Link>
-        </nav>
+        <Breadcrumb items={[{ label: "使い方ガイド", href: "/guide" }, { label: page.summary }]} />
 
         <h1 style={{ fontSize: 24, lineHeight: 1.4, marginBottom: 20 }}>{page.title}</h1>
         <Toc titles={sectionTitles(page.body)} />

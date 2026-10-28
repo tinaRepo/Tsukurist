@@ -4,30 +4,33 @@
 
 ## 構成
 
-| 場所                                   | 役割                                                                                |
-| -------------------------------------- | ----------------------------------------------------------------------------------- |
-| `lib/guide-pages.tsx`                  | ガイド9ページの本文データ（1ファイルで管理）                                        |
-| `components/GuideParts.tsx`            | `Section` `Step` `Note` `P` `Ul` `Fold` `Toc` `InlineCta` `Shot`                    |
-| `components/PublicHeader.tsx`          | `/guide`・`/tools` 共通ヘッダー（ロゴ・使い方・無料ツール・ログイン／アプリを開く） |
-| `components/GuideAuth.tsx`             | ログイン状態で表示を切り替える `GuestOnly` `PageCta` `useIsLoggedIn`                |
-| `components/GuideFigures.tsx`          | 実画面の部品を使った図（`Fig*`）と手順の流れ図（`Flow`）                            |
-| `app/guide/page.tsx`                   | ガイド一覧（ハブ）                                                                  |
-| `app/guide/[slug]/page.tsx`            | 各ガイドのページ（目次・途中のデモ誘導・関連ガイドを自動で付ける）                  |
-| `lib/tools.ts`                         | 無料ツールの一覧データ                                                              |
-| `app/tools/**` / `components/tools/**` | 無料ツールのページと本体（すべてブラウザ内で計算）                                  |
-| `app/sitemap.ts`                       | ガイド・ツールの各ページを自動でサイトマップに追加                                  |
+| 場所                                   | 役割                                                                 |
+| -------------------------------------- | -------------------------------------------------------------------- |
+| `lib/guide-pages.tsx`                  | ガイド9ページの本文データ（1ファイルで管理）                         |
+| `components/GuideParts.tsx`            | `Section` `Step` `Note` `P` `Ul` `Fold` `Toc` `InlineCta` `Shot`     |
+| `components/Breadcrumb.tsx`            | 公開ページ共通のパンくずリスト（構造化データも出力）                 |
+| `components/GuideAuth.tsx`             | ログイン状態で表示を切り替える `GuestOnly` `PageCta` `useIsLoggedIn` |
+| `components/GuideFigures.tsx`          | 実画面の部品を使った図（`Fig*`）と手順の流れ図（`Flow`）             |
+| `app/guide/page.tsx`                   | ガイド一覧（ハブ）                                                   |
+| `app/guide/[slug]/page.tsx`            | 各ガイドのページ（目次・途中のデモ誘導・関連ガイドを自動で付ける）   |
+| `lib/tools.ts`                         | 無料ツールの一覧データ（`name` はパンくず用の短い名前）              |
+| `app/tools/**` / `components/tools/**` | 無料ツールのページと本体（すべてブラウザ内で計算）                   |
+| `app/sitemap.ts`                       | ガイド・ツールの各ページを自動でサイトマップに追加                   |
 
 ページを足すときは、データを1件追加するだけで、一覧・サイトマップ・前後リンク・目次が更新されます。
 
-## ヘッダーと導線・ログイン状態
+## パンくずと導線・ログイン状態
 
-- `/guide`・`/tools` は、履歴に頼る「戻る」ボタンではなく `PublicHeader`（ロゴ→トップ、使い方、無料ツール、ログイン／アプリを開く）を使います。ページの階層は、各ページ上部のパンくずと、末尾の「次に読むなら」「前後のガイド」で示します。
+- 公開ページ（`/guide`・`/tools`・`/terms`・`/privacy`・`/tokusho`）は、共通ヘッダーや「戻る」ボタンを持たず、各ページ上部の `<Breadcrumb items={[…]} />` で階層を示します。先頭の「ホーム」は自動で付き、最後（現在のページ）は `href` なしで渡します。
+  - 例: `<Breadcrumb items={[{ label: "使い方ガイド", href: "/guide" }, { label: page.summary }]} />`
+- 「ホーム」（`/`）は、未ログインならサービス紹介、ログイン中ならアプリを表示します。ログイン中の人は、これがアプリへの入口になります。
+- 階層をたどる補助として、各ページ末尾の「次に読むなら」「前後のガイド」「ほかの無料ツール」を使います。
 - 登録を促す表示（「無料で始める」「デモを試す」、ツール内の登録リンク）は、ログイン中は出しません。未ログインのときだけ表示したい要素は `<GuestOnly>…</GuestOnly>` で包み、ページ末尾の行動ボタンは `<PageCta />` を使います（ログイン中は「タスク一覧を開く」になります）。
 - 判定はブラウザのCookie（`sb-…-auth-token`）をマウント後に見ています。サーバー側で判定しないのは、ページを静的に生成して高速に配信するためです。そのため、ログイン中でも、描画の直後は一瞬だけ空欄になります（高さは確保しています）。
 
 ## ガイドのページを追加・編集する
 
-1. `lib/guide-pages.tsx` の `GUIDE_PAGES` に1件追加します（`slug` `title` `description` `summary` `related` `body`）。
+1. `lib/guide-pages.tsx` の `GUIDE_PAGES` に1件追加します（`slug` `title` `description` `summary` `related` `body`）。`summary` は、パンくずの現在ページ名と前後リンクにも使われるため、短く書きます。
 2. `body` は `<Section title="…">` を並べます。`title` は目次とページ内リンク（`id`）に使われるため、**同じページ内で重複させない**でください。
 3. `related` は `{ slug, reason }` の配列です。`reason`（読む理由）が「次に読むなら」に表示されます。
 4. 画面名・ボタン名は、実際のUI表記に合わせます。UIの文言を変えたら、ガイドの文言も更新してください。
@@ -121,9 +124,9 @@ import { Shot } from "@/components/GuideParts";
 
 ## 無料ツールを追加する
 
-1. `lib/tools.ts` の `TOOLS` に `slug` `title` `summary` `description` を追加します。
+1. `lib/tools.ts` の `TOOLS` に `slug` `name`（パンくず用の短い名前）`title` `summary` `description` を追加します。
 2. `components/tools/` にツール本体を `"use client"` のコンポーネントとして作ります。入力は**サーバーに送信しない**作りにします（ページの説明文にも「ブラウザ内で処理される」と書いています）。
-3. `app/tools/<slug>/page.tsx` を作り、`ToolPageShell` で包みます。`explanation` に、使い方・結果の読みかた・考え方の解説文を入れます（ツールだけの薄いページにしないため）。
+3. `app/tools/<slug>/page.tsx` を作り、`ToolPageShell` で包みます（パンくずはシェルが自動で付けます）。`explanation` に、使い方・結果の読みかた・考え方の解説文を入れます（ツールだけの薄いページにしないため）。
 4. 日付に依存する初期値は、サーバー描画とのずれを避けるため、`useEffect` の中（マウント後）で入れます。
 5. 税金・法律に関わる計算には、注意書き（`Note tone="warn"`）を必ず付けます。
 
@@ -140,7 +143,8 @@ import { Shot } from "@/components/GuideParts";
 - [ ] `npm run typecheck && npm run lint && npm run build` が通る
 - [ ] 新しいページが `/sitemap.xml` に含まれている
 - [ ] 画面名・ボタン名が、実際のUIと一致している
+- [ ] パンくずの階層とリンク先が正しい
 - [ ] `<Shot />` の画像が表示され、`alt` が書かれている（GIFが重すぎない）
-- [ ] スマホ幅で、図・目次・折りたたみが崩れていない
+- [ ] スマホ幅で、図・目次・折りたたみ・パンくずが崩れていない
 - [ ] 画像に個人情報（名前・メール・依頼先・金額）が写っていない
 - [ ] Search Consoleで `/sitemap.xml` を再送信し、主要ページのインデックス登録をリクエストした

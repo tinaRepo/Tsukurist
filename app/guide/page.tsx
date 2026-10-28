@@ -1,5 +1,5 @@
 import Link from "next/link";
-import PublicHeader from "@/components/PublicHeader";
+import Breadcrumb from "@/components/Breadcrumb";
 import { Icon } from "@/components/TaskShared";
 import { GUIDE_PAGES } from "@/lib/guide-pages";
 
@@ -7,8 +7,8 @@ import { GUIDE_PAGES } from "@/lib/guide-pages";
 export default function GuidePage() {
   return (
     <div style={{ minHeight: "100vh", background: "var(--surface)" }}>
-      <PublicHeader current="guide" />
       <main className="container-narrow" style={{ padding: "32px 24px 80px" }}>
+        <Breadcrumb items={[{ label: "使い方ガイド" }]} />
         <div style={{ textAlign: "center", marginBottom: 40 }}>
           <h1 style={{ fontSize: 22, marginBottom: 8 }}>ツクリスト 使い方ガイド</h1>
           <p className="text-muted" style={{ fontSize: 14, lineHeight: 1.8 }}>

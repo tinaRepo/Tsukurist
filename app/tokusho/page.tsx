@@ -1,17 +1,12 @@
-"use client";
+import Breadcrumb from "@/components/Breadcrumb";
+import { SITE_URL, SUPPORT_EMAIL } from "@/lib/site";
 
-import PublicHeader from "@/components/PublicHeader";
-import { SITE_URL } from "@/lib/site";
-import { SUPPORT_EMAIL } from "@/lib/site";
-// ページメタデータ
 export default function TokushoPage() {
   return (
     <div style={{ minHeight: "100vh", background: "var(--surface)" }}>
-      <header className="doc-header">
-        <PublicHeader />
-        <span className="title">特定商取引法に基づく表記</span>
-      </header>
       <main className="container-narrow" style={{ padding: "32px 24px 80px" }}>
+        <Breadcrumb items={[{ label: "特定商取引法に基づく表記" }]} />
+        <h1 style={{ fontSize: 24, lineHeight: 1.4, marginBottom: 24 }}>特定商取引法に基づく表記</h1>
 
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
           <tbody>

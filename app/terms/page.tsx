@@ -1,15 +1,11 @@
-"use client";
+import Breadcrumb from "@/components/Breadcrumb";
 
-import PublicHeader from "@/components/PublicHeader";
-// ページメタデータ
 export default function TermsPage() {
   return (
     <div style={{ minHeight: "100vh", background: "var(--surface)" }}>
-      <header className="doc-header">
-        <PublicHeader />
-        <span className="title">利用規約</span>
-      </header>
       <main className="container-narrow" style={{ padding: "32px 24px 80px" }}>
+        <Breadcrumb items={[{ label: "利用規約" }]} />
+        <h1 style={{ fontSize: 24, lineHeight: 1.4, marginBottom: 12 }}>利用規約</h1>
         <p className="text-meta" style={{ marginBottom: 24 }}>最終更新日：2026年10月16日</p>
 
         <Section title="第1条（適用）">

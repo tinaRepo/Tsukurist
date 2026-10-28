@@ -1,9 +1,8 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
-import PublicHeader from "@/components/PublicHeader";
+import Breadcrumb from "@/components/Breadcrumb";
 import { GuestOnly } from "@/components/GuideAuth";
 import { Icon } from "@/components/TaskShared";
-import { SITE_URL } from "@/lib/seo";
 import { TOOLS, getTool } from "@/lib/tools";
 
 // 無料ツールの各ページ共通の枠（パンくず・見出し・解説・他のツール・登録導線）。server component。
@@ -14,25 +13,10 @@ export default function ToolPageShell({ slug, lead, children, explanation }: {
   const tool = getTool(slug)!;
   const others = TOOLS.filter(t => t.slug !== slug);
 
-  const breadcrumb = {
-    "@context": "https://schema.org",
-    "@type": "BreadcrumbList",
-    itemListElement: [
-      { "@type": "ListItem", position: 1, name: "ツクリスト", item: SITE_URL },
-      { "@type": "ListItem", position: 2, name: "無料ツール", item: `${SITE_URL}/tools` },
-      { "@type": "ListItem", position: 3, name: tool.title, item: `${SITE_URL}/tools/${slug}` },
-    ],
-  };
-
   return (
     <div style={{ minHeight: "100vh", background: "var(--surface)" }}>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumb) }} />
-      <PublicHeader current="tools" />
       <main className="container-narrow" style={{ padding: "32px 24px 80px" }}>
-        <nav aria-label="パンくず" className="text-meta" style={{ marginBottom: 16 }}>
-          <Link href="/" style={{ color: "var(--accent)" }}>ホーム</Link> ／{" "}
-          <Link href="/tools" style={{ color: "var(--accent)" }}>無料ツール</Link>
-        </nav>
+        <Breadcrumb items={[{ label: "無料ツール", href: "/tools" }, { label: tool.name }]} />
         <h1 style={{ fontSize: 24, lineHeight: 1.4, marginBottom: 12 }}>{tool.title}</h1>
         <p className="text-muted" style={{ fontSize: 14, lineHeight: 1.8, marginBottom: 24 }}>{lead}</p>
 
