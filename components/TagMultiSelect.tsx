@@ -1,5 +1,7 @@
 "use client";
 
+import { Icon } from "./TaskShared";
+
 type TagOption = { id: string; name: string };
 
 type Props = {
@@ -22,7 +24,7 @@ export function TagMultiSelect({ tags, selectedIds, onChange, ariaLabel, placeho
         <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
           {selectedNames.length > 0 ? selectedNames.join("、") : placeholder}
         </span>
-        <span aria-hidden="true" style={{ flexShrink: 0, marginLeft: 8 }}>▾</span>
+        <span aria-hidden="true" style={{ flexShrink: 0, marginLeft: 8, display: "inline-flex" }}><Icon name="chevronDown" size={14} /></span>
       </summary>
       <div style={{
         position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, zIndex: 20,

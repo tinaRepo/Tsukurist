@@ -528,15 +528,15 @@
   color: white;
   font-size: 13px;
   font-weight: 600;
-  background: linear-gradient(145deg, #d7a6a3, #735f8d);
+  background: var(--surface-inverse);
 }
 
 .demo-share-art-2 {
-  background: linear-gradient(145deg, #8fc4bd, #355b73);
+  background: var(--accent-fill);
 }
 
 .demo-share-art-3 {
-  background: linear-gradient(145deg, #e8bd77, #b46f63);
+  background: var(--neutral);
 }
 
 .share-page-content {

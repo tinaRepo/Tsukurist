@@ -169,6 +169,7 @@ const ICON_PATHS = {
   tag: "M20 13l-7 7-10-10V3h7l10 10Z M7.5 7.5h.01",
   eye: "M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6Z M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z",
   eyeOff: "M3 3l18 18 M10.6 6.2A10.8 10.8 0 0 1 12 6c6.5 0 10 6 10 6a15.7 15.7 0 0 1-4 4.5 M6.2 6.2C3.5 7.9 2 12 2 12s3.5 6 10 6c1.4 0 2.7-.3 3.8-.8 M9.9 9.9a3 3 0 0 0 4.2 4.2",
+  external: "M14 4h6v6 M20 4l-9 9 M18 14v5H5V6h5",
 } satisfies Record<string, string>;
 
 export type IconName = keyof typeof ICON_PATHS;

@@ -321,7 +321,7 @@ export default function DemoApp({ returnPath, onBack }: {
             {filtered.length === 0 && (
               <div style={{ textAlign: "center", marginTop: 60 }}>
                 <div style={{ color: "var(--meta)", fontSize: 14, marginBottom: 8 }}>タスクがありません</div>
-                <div className="text-meta">「＋ 新規登録」からタスクを追加してみてください</div>
+                <div className="text-meta">「新規登録」からタスクを追加してみてください</div>
               </div>
             )}
             <div style={{ display: "grid", gap: 10 }}>
@@ -544,14 +544,15 @@ export default function DemoApp({ returnPath, onBack }: {
                   ].map(([label, value]) => (
                     <div key={label} style={{ padding: 16, borderRadius: "var(--radius-md)", background: "var(--surface-2, var(--bg))" }}>
                       <div className="text-meta" style={{ marginBottom: 8 }}>{label}</div>
-                      <div style={{ fontSize: 22, fontWeight: 700 }}>{value}</div>
+                      <div style={{ fontSize: 22, fontWeight: 600 }}>{value}</div>
                     </div>
                   ))}
                 </div>
                 <div style={{ display: "grid", justifyItems: "start", gap: 8, marginTop: 24 }}>
                   {["x.com", "instagram.com", "pixiv.net"].map(host => (
                     <span key={host} className="btn btn-secondary share-page-social-link" style={{ cursor: "default" }}>
-                      <span className="share-page-social-host">{host} のプロフィールを見る ↗</span>
+                      <span className="share-page-social-host">{host} のプロフィールを見る</span>
+                      <span aria-hidden="true" style={{ display: "inline-flex", flexShrink: 0 }}><Icon name="external" size={14} /></span>
                     </span>
                   ))}
                 </div>

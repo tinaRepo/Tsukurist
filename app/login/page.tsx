@@ -286,7 +286,7 @@ export default function LoginPage() {
           )}
           {mode === "reset" && (
             <TextLink onClick={() => { setMode("login"); setMessage(null); }}>
-              ← ログインに戻る
+              <Icon name="arrowLeft" size={14} /> ログインに戻る
             </TextLink>
           )}
           {mode === "login" && (
@@ -339,7 +339,7 @@ function TextLink({ onClick, children }: { onClick: () => void; children: React.
   return (
     <button onClick={onClick} style={{
       background: "none", border: "none", color: "var(--accent)",
-      fontWeight: 600, fontSize: 13, padding: "0 4px",
+      fontWeight: 600, fontSize: 13, padding: "0 4px", display: "inline-flex", alignItems: "center", gap: 4,
     }}>
       {children}
     </button>

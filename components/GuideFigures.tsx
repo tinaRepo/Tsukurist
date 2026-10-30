@@ -232,7 +232,7 @@ export function FigSearchBar() {
         <span className="btn btn-secondary btn-sm">詳細検索 <Icon name="chevronDown" size={12} /></span>
         <div className="row" style={{ gap: 6, marginLeft: "auto" }}>
           <select className="select task-search-select" style={{ width: "auto" }} disabled><option>納期順</option></select>
-          <span className="btn btn-secondary btn-sm">↑ 昇順</span>
+          <span className="btn btn-secondary btn-sm"><Icon name="chevronUp" size={14} /> 昇順</span>
         </div>
       </div>
     </Figure>
@@ -433,7 +433,7 @@ export function FigSharePage() {
           {metrics.map(([l, v]) => (
             <div key={l} style={{ padding: 12, borderRadius: "var(--radius-md)", background: "var(--surface-2)" }}>
               <div className="text-meta" style={{ marginBottom: 4 }}>{l}</div>
-              <div style={{ fontSize: 18, fontWeight: 700 }}>{v}</div>
+              <div style={{ fontSize: 18, fontWeight: 600 }}>{v}</div>
             </div>
           ))}
         </div>
