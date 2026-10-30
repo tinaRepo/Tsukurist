@@ -1,7 +1,8 @@
 "use client";
 
 import { Icon } from "@/components/TaskShared";
-import { useState, useEffect } from "react";
+import SiteHeader from "@/components/SiteHeader";
+import { useState } from "react";
 
 // モックデータ
 const MOCK_TASKS = [
@@ -38,14 +39,6 @@ const FAQS: { q: string; a: string; link?: { href: string; label: string } }[] =
 
 // ランディングページ
 export default function LandingPage() {
-  const [scrolled, setScrolled] = useState(false);
-
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 40);
-    window.addEventListener("scroll", onScroll);
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
-
   return (
     <>
       <script
@@ -70,24 +63,11 @@ export default function LandingPage() {
       />
       <div style={{ background: "var(--surface-sky)", color: "var(--fg)" }}>
 
-        {/* ナビ */}
-        <nav className="nav-public" style={{
-          background: scrolled ? "color-mix(in srgb, var(--surface-sky) 80%, transparent)" : "transparent",
-          backdropFilter: scrolled ? "saturate(180%) blur(20px)" : "none",
-          WebkitBackdropFilter: scrolled ? "saturate(180%) blur(20px)" : "none",
-          borderBottom: scrolled ? "1px solid var(--border-soft)" : "1px solid transparent",
-        }}>
-          <span style={{ fontWeight: 600, fontSize: 16, letterSpacing: "-0.01em" }}>ツクリスト</span>
-          <div className="row" style={{ gap: 16 }}>
-            <a href="/guide" style={{ color: "var(--fg-2)", fontSize: 13, textDecoration: "none", fontWeight: 600 }}>使い方</a>
-            <a href="/tools" style={{ color: "var(--fg-2)", fontSize: 13, textDecoration: "none", fontWeight: 600 }}>無料ツール</a>
-            <a href="/login" style={{ color: "var(--fg-2)", fontSize: 13, textDecoration: "none", fontWeight: 600 }}>ログイン</a>
-            <a href="/login" className="btn btn-primary btn-sm" style={{ textDecoration: "none" }}>無料で始める</a>
-          </div>
-        </nav>
+        {/* 共通ヘッダー（他の公開ページと同じ。LPは本文が広いので wide） */}
+        <SiteHeader wide />
 
-        {/* ヒーロー */}
-        <section className="hero">
+        {/* ヒーロー（ヘッダーが固定ではなくなったので、上の余白を詰める） */}
+        <section className="hero" style={{ paddingTop: 56, minHeight: "calc(100vh - 52px)" }}>
           <div className="hero-eyebrow">納期・タスク管理ツール</div>
           <h1 className="hero-title">納期を、<br />もう迷子にしない。</h1>
           <p className="hero-subtitle">
@@ -96,14 +76,14 @@ export default function LandingPage() {
           </p>
 
           <div className="row" style={{ gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
-            <a href="/login" className="btn btn-primary" style={{ textDecoration: "none" }}>無料で始める<Icon name="chevronRight" size={16} /></a>
+            <a href="/login" className="btn btn-primary" style={{ textDecoration: "none" }}>無料で始める →</a>
             <a href="/demo" className="btn btn-secondary" style={{ textDecoration: "none" }}>デモを試す</a>
           </div>
           <p style={{ fontSize: 12, color: "var(--meta)", marginTop: 20 }}>クレジットカード不要・登録1分</p>
 
           {/* モックUI */}
           <div className="card" style={{
-            marginTop: 72, width: "100%", maxWidth: 640, padding: 20, textAlign: "left",
+            marginTop: 56, width: "100%", maxWidth: 640, padding: 16, textAlign: "left",
           }}>
             <div className="row" style={{ justifyContent: "space-between", marginBottom: 16, padding: "10px 14px", borderBottom: "1px solid var(--border-soft)" }}>
               <span style={{ fontWeight: 600, fontSize: 13 }}>ツクリスト</span>
@@ -115,19 +95,19 @@ export default function LandingPage() {
             </div>
             {MOCK_TASKS.map((t, i) => (
               <div key={i} className="row" style={{
-                justifyContent: "space-between", padding: "12px 14px", marginBottom: 6,
+                justifyContent: "space-between", gap: 8, padding: "12px 14px", marginBottom: 6,
                 borderRadius: "var(--radius-md)",
                 background: t.urgent ? "var(--danger-soft)" : "var(--surface)",
               }}>
-                <div>
-                  <div className="row" style={{ gap: 8, marginBottom: 4 }}>
+                <div style={{ minWidth: 0 }}>
+                  <div className="row" style={{ gap: 8, marginBottom: 4, flexWrap: "wrap" }}>
                     <span style={{ fontWeight: 600, fontSize: 13 }}>{t.title}</span>
                     <span className="badge badge-neutral">{t.status}</span>
                     {t.urgent && <span style={{ fontSize: 10, color: "var(--danger)", fontWeight: 600 }}>あと3日</span>}
                   </div>
                   <div style={{ fontSize: 11, color: "var(--muted)" }}>{t.assignee} ・ 納期 {t.deadline}</div>
                 </div>
-                <div style={{ fontWeight: 600, fontSize: 14 }}>{t.price}</div>
+                <div style={{ fontWeight: 600, fontSize: 14, flexShrink: 0 }}>{t.price}</div>
               </div>
             ))}
           </div>
@@ -212,7 +192,7 @@ export default function LandingPage() {
           <h2 className="section-title">今すぐ無料で始めよう</h2>
           <p style={{ color: "var(--muted)", fontSize: 14, marginBottom: 32 }}>登録1分・クレジットカード不要</p>
           <div className="row" style={{ gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
-            <a href="/login" className="btn btn-primary" style={{ textDecoration: "none" }}>無料アカウントを作成<Icon name="chevronRight" size={16} /></a>
+            <a href="/login" className="btn btn-primary" style={{ textDecoration: "none" }}>無料アカウントを作成 →</a>
             <a href="/demo" className="btn btn-secondary" style={{ textDecoration: "none" }}>デモを試す</a>
           </div>
         </section>

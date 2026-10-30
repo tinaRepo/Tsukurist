@@ -1,11 +1,9 @@
 import Link from "next/link";
 import { SITE_URL } from "@/lib/site";
 
-// 公開ページ共通のパンくずリスト（/guide・/tools・/terms・/privacy・/tokusho）。
-// 先頭の「ホーム」は自動で付く。最後（現在のページ）は href を付けない。
-// ※ "/" は未ログインならサービス紹介、ログイン中ならアプリを表示する。
-//   → ログイン中の人にとっての「アプリを開く」の役割もこのリンクが担う。
-// 構造化データ（BreadcrumbList）もここで出力する。
+// ヘッダー直下に置く、パンくずの帯。先頭の「ホーム」は自動で付く。
+// 最後（現在のページ）は href を付けない。BreadcrumbList の構造化データもここで出力する。
+// 見た目は app/public-pages.css（.breadcrumb-*）。スマホでは折り返さず、現在のページ名だけ … で省略する。
 export type Crumb = { label: string; href?: string };
 
 export default function Breadcrumb({ items }: { items: Crumb[] }) {
@@ -23,20 +21,18 @@ export default function Breadcrumb({ items }: { items: Crumb[] }) {
   };
 
   return (
-    <nav aria-label="パンくず" className="text-meta" style={{ marginBottom: 16 }}>
+    <nav aria-label="パンくず" className="breadcrumb-bar">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-      <ol style={{ listStyle: "none", display: "flex", flexWrap: "wrap", gap: "4px 8px", alignItems: "center" }}>
-        {all.map((c, i) => (
-          <li key={i} style={{ display: "inline-flex", gap: 8, alignItems: "center" }}>
-            {c.href ? (
-              <Link href={c.href} style={{ color: "var(--accent)" }}>{c.label}</Link>
-            ) : (
-              <span aria-current="page">{c.label}</span>
-            )}
-            {i < all.length - 1 && <span aria-hidden="true">／</span>}
-          </li>
-        ))}
-      </ol>
+      <div className="breadcrumb-inner">
+        <ol className="breadcrumb-list">
+          {all.map((c, i) => (
+            <li key={i}>
+              {c.href ? <Link href={c.href}>{c.label}</Link> : <span aria-current="page">{c.label}</span>}
+              {i < all.length - 1 && <span aria-hidden="true">／</span>}
+            </li>
+          ))}
+        </ol>
+      </div>
     </nav>
   );
 }

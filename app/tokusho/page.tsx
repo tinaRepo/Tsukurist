@@ -1,14 +1,12 @@
-import Breadcrumb from "@/components/Breadcrumb";
+import PublicShell from "@/components/PublicShell";
 import { SITE_URL, SUPPORT_EMAIL } from "@/lib/site";
 
 export default function TokushoPage() {
   return (
-    <div style={{ minHeight: "100vh", background: "var(--surface)" }}>
-      <main className="container-narrow" style={{ padding: "32px 24px 80px" }}>
-        <Breadcrumb items={[{ label: "特定商取引法に基づく表記" }]} />
+    <PublicShell crumbs={[{ label: "特定商取引法に基づく表記" }]}>
         <h1 style={{ fontSize: 24, lineHeight: 1.4, marginBottom: 24 }}>特定商取引法に基づく表記</h1>
 
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
+        <table className="tokusho-table">
           <tbody>
             {[
               ["販売業者", "請求があった場合は遅滞なく開示します"],
@@ -33,14 +31,13 @@ export default function TokushoPage() {
               ["個人情報の取り扱い", `プライバシーポリシー（${SITE_URL}/privacy）に従い適切に管理します。`],
             ].map(([label, value]) => (
               <tr key={String(label)} style={{ borderBottom: "1px solid var(--border-soft)" }}>
-                <td style={{ padding: "14px 12px", fontWeight: 600, color: "var(--muted)", width: 200, verticalAlign: "top", background: "var(--bg)", fontSize: 13, whiteSpace: "nowrap" }}>{label}</td>
-                <td style={{ padding: "14px 12px", color: "var(--fg-2)", lineHeight: 1.8, whiteSpace: "pre-wrap", wordBreak: "break-all" }}>{value}</td>
+                <td className="tokusho-label">{label}</td>
+                <td className="tokusho-value">{value}</td>
               </tr>
             ))}
           </tbody>
         </table>
 
-      </main>
-    </div>
+    </PublicShell>
   );
 }

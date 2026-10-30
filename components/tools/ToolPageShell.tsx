@@ -1,11 +1,11 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
-import Breadcrumb from "@/components/Breadcrumb";
+import PublicShell from "@/components/PublicShell";
 import { GuestOnly } from "@/components/GuideAuth";
 import { Icon } from "@/components/TaskShared";
 import { TOOLS, getTool } from "@/lib/tools";
 
-// 無料ツールの各ページ共通の枠（パンくず・見出し・解説・他のツール・登録導線）。server component。
+// 無料ツールの各ページ共通の枠（ヘッダー・パンくず・見出し・解説・他のツール・登録導線）。server component。
 // children = ツール本体（client component）、explanation = ツールの使い方・考え方の解説文
 export default function ToolPageShell({ slug, lead, children, explanation }: {
   slug: string; lead: string; children: ReactNode; explanation: ReactNode;
@@ -14,45 +14,42 @@ export default function ToolPageShell({ slug, lead, children, explanation }: {
   const others = TOOLS.filter(t => t.slug !== slug);
 
   return (
-    <div style={{ minHeight: "100vh", background: "var(--surface)" }}>
-      <main className="container-narrow" style={{ padding: "32px 24px 80px" }}>
-        <Breadcrumb items={[{ label: "無料ツール", href: "/tools" }, { label: tool.name }]} />
-        <h1 style={{ fontSize: 24, lineHeight: 1.4, marginBottom: 12 }}>{tool.title}</h1>
-        <p className="text-muted" style={{ fontSize: 14, lineHeight: 1.8, marginBottom: 24 }}>{lead}</p>
+    <PublicShell current="tools" crumbs={[{ label: "無料ツール", href: "/tools" }, { label: tool.name }]}>
+      <h1 style={{ fontSize: 24, lineHeight: 1.4, marginBottom: 12 }}>{tool.title}</h1>
+      <p className="text-muted" style={{ fontSize: 14, lineHeight: 1.8, marginBottom: 24 }}>{lead}</p>
 
-        {children}
+      {children}
 
-        <article style={{ marginTop: 48 }}>{explanation}</article>
+      <article style={{ marginTop: 48 }}>{explanation}</article>
 
-        <section style={{ marginTop: 40 }}>
-          <h2 style={{ fontSize: 17, marginBottom: 12 }}>ほかの無料ツール</h2>
-          <div style={{ display: "grid", gap: 8 }}>
-            {others.map(t => (
-              <Link key={t.slug} href={`/tools/${t.slug}`} className="card card-interactive row"
-                style={{ padding: "12px 16px", textDecoration: "none", gap: 12 }}>
-                <span className="grow">
-                  <span style={{ display: "block", fontWeight: 600, fontSize: 14 }}>{t.title}</span>
-                  <span className="text-meta" style={{ display: "block", marginTop: 2 }}>{t.summary}</span>
-                </span>
-                <span style={{ color: "var(--meta)", display: "inline-flex" }}><Icon name="chevronRight" size={16} /></span>
-              </Link>
-            ))}
+      <section style={{ marginTop: 40 }}>
+        <h2 style={{ fontSize: 17, marginBottom: 12 }}>ほかの無料ツール</h2>
+        <div style={{ display: "grid", gap: 8 }}>
+          {others.map(t => (
+            <Link key={t.slug} href={`/tools/${t.slug}`} className="card card-interactive row"
+              style={{ padding: "12px 16px", textDecoration: "none", gap: 12 }}>
+              <span className="grow">
+                <span style={{ display: "block", fontWeight: 600, fontSize: 14 }}>{t.title}</span>
+                <span className="text-meta" style={{ display: "block", marginTop: 2 }}>{t.summary}</span>
+              </span>
+              <span style={{ color: "var(--meta)", display: "inline-flex" }}><Icon name="chevronRight" size={16} /></span>
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      <GuestOnly>
+        <div className="card" style={{ marginTop: 40, padding: "22px 20px", textAlign: "center" }}>
+          <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 6 }}>依頼の納期を、まとめて管理しませんか？</div>
+          <p className="text-muted" style={{ fontSize: 13, lineHeight: 1.8, marginBottom: 16 }}>
+            ツクリストなら、依頼先・納期・金額・確認用画像を一覧で管理でき、納期が近づくとお知らせします。無料プランは期限なく使えます。
+          </p>
+          <div className="row" style={{ justifyContent: "center", gap: 12, flexWrap: "wrap" }}>
+            <Link href="/demo" className="btn btn-secondary" style={{ textDecoration: "none" }}>デモを試す</Link>
+            <Link href="/login" className="btn btn-primary" style={{ textDecoration: "none" }}>無料で始める</Link>
           </div>
-        </section>
-
-        <GuestOnly>
-          <div className="card" style={{ marginTop: 40, padding: "22px 20px", textAlign: "center" }}>
-            <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 6 }}>依頼の納期を、まとめて管理しませんか？</div>
-            <p className="text-muted" style={{ fontSize: 13, lineHeight: 1.8, marginBottom: 16 }}>
-              ツクリストなら、依頼先・納期・金額・確認用画像を一覧で管理でき、納期が近づくとお知らせします。無料プランは期限なく使えます。
-            </p>
-            <div className="row" style={{ justifyContent: "center", gap: 12, flexWrap: "wrap" }}>
-              <Link href="/demo" className="btn btn-secondary" style={{ textDecoration: "none" }}>デモを試す</Link>
-              <Link href="/login" className="btn btn-primary" style={{ textDecoration: "none" }}>無料で始める</Link>
-            </div>
-          </div>
-        </GuestOnly>
-      </main>
-    </div>
+        </div>
+      </GuestOnly>
+    </PublicShell>
   );
 }

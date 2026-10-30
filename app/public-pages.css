@@ -1,0 +1,264 @@
+/* ============================================================
+   public-pages.css — 公開ページ（/ /guide /tools /terms /privacy /tokusho）共通
+   SiteHeader（共通ヘッダー）・Breadcrumb（パンくずの帯）・PublicShell の見た目。
+   スマホ（〜640px）を基準に書き、PCは min-width で広げる。
+   色・余白は globals.css のトークンのみを使う。
+   SiteHeader.tsx から import される（components.css へ統合してもよい）。
+   ============================================================ */
+
+/* ---------------- 共通ヘッダー ---------------- */
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 60;
+  background: color-mix(in srgb, var(--bg) 85%, transparent);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  backdrop-filter: saturate(180%) blur(20px);
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.site-header-inner {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 0 16px;
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+/* LPなど、本文が広いページ用 */
+.site-header-inner.wide {
+  max-width: 980px;
+}
+
+.site-header-logo {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  flex-shrink: 0;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--fg);
+  text-decoration: none;
+}
+
+.site-header-nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.site-header-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 8px;
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--muted);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.site-header-link[aria-current="page"] {
+  color: var(--fg);
+  font-weight: 600;
+}
+
+/* .btn-sm より優先させるため2クラスで指定 */
+.site-header .site-header-cta {
+  min-height: 36px;
+  margin-left: 4px;
+  padding: 6px 14px;
+  font-size: 13px;
+  text-decoration: none;
+  flex-shrink: 0;
+}
+
+@media (min-width: 641px) {
+  .site-header-inner {
+    padding: 0 24px;
+  }
+
+  .site-header-nav {
+    gap: 8px;
+  }
+
+  .site-header-link {
+    padding: 0 12px;
+    font-size: 14px;
+  }
+}
+
+/* 320px級の小型端末 */
+@media (max-width: 359px) {
+  .site-header-inner {
+    padding: 0 12px;
+  }
+
+  .site-header-link {
+    padding: 0 5px;
+    font-size: 12px;
+  }
+
+  .site-header .site-header-cta {
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+}
+
+/* ---------------- パンくず（ヘッダー直下の帯） ---------------- */
+.breadcrumb-bar {
+  background: var(--bg);
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.breadcrumb-inner {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+
+.breadcrumb-list {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  overflow: hidden;
+  font-size: 12px;
+  color: var(--meta);
+}
+
+.breadcrumb-list li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+/* 現在のページ名だけが縮み、長いときは … で省略する（折り返さない） */
+.breadcrumb-list li:last-child {
+  flex-shrink: 1;
+  min-width: 0;
+}
+
+.breadcrumb-list li:last-child span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.breadcrumb-list a {
+  padding: 10px 0;
+  color: var(--accent);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+@media (min-width: 641px) {
+  .breadcrumb-inner {
+    padding: 0 24px;
+  }
+}
+
+/* ---------------- 本文の枠 ---------------- */
+.public-main {
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 24px 16px 64px;
+}
+
+@media (min-width: 641px) {
+  .public-main {
+    padding: 32px 24px 80px;
+  }
+}
+
+/* ---------------- ガイド：前後のページ ---------------- */
+.guide-pager {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+  margin-top: 40px;
+}
+
+.guide-pager > span {
+  display: none;
+}
+
+.guide-pager .btn {
+  height: auto;
+  padding: 10px 14px;
+  justify-content: flex-start;
+  text-align: left;
+  white-space: normal;
+  line-height: 1.4;
+  text-decoration: none;
+}
+
+/* 「次へ」は文字を左、矢印を右端に置く */
+.guide-pager .btn.next {
+  justify-content: space-between;
+}
+
+@media (min-width: 641px) {
+  .guide-pager {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .guide-pager > span {
+    display: block;
+  }
+}
+
+/* ---------------- 特定商取引法の表：スマホでは縦積み ---------------- */
+.tokusho-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.tokusho-label {
+  width: 200px;
+  padding: 14px 12px;
+  vertical-align: top;
+  background: var(--bg);
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.tokusho-value {
+  padding: 14px 12px;
+  color: var(--fg-2);
+  line-height: 1.8;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+@media (max-width: 640px) {
+
+  .tokusho-table,
+  .tokusho-table tbody,
+  .tokusho-table tr,
+  .tokusho-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .tokusho-label {
+    padding: 10px 12px;
+    white-space: normal;
+  }
+
+  .tokusho-value {
+    padding: 10px 12px 16px;
+  }
+}

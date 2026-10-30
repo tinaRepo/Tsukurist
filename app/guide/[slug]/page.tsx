@@ -2,7 +2,7 @@ import { Children, Fragment, isValidElement, type ReactElement, type ReactNode }
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import Breadcrumb from "@/components/Breadcrumb";
+import PublicShell from "@/components/PublicShell";
 import { PageCta } from "@/components/GuideAuth";
 import { Icon } from "@/components/TaskShared";
 import { Section, Toc, InlineCta } from "@/components/GuideParts";
@@ -50,9 +50,7 @@ export default function GuideDetailPage({ params }: { params: { slug: string } }
   const mid = parts.length >= 4 ? Math.ceil(parts.length / 2) : -1;
 
   return (
-    <div style={{ minHeight: "100vh", background: "var(--surface)" }}>
-      <main className="container-narrow" style={{ padding: "32px 24px 80px" }}>
-        <Breadcrumb items={[{ label: "使い方ガイド", href: "/guide" }, { label: page.summary }]} />
+    <PublicShell current="guide" crumbs={[{ label: "使い方ガイド", href: "/guide" }, { label: page.summary }]}>
 
         <h1 style={{ fontSize: 24, lineHeight: 1.4, marginBottom: 20 }}>{page.title}</h1>
         <Toc titles={sectionTitles(page.body)} />
@@ -80,21 +78,20 @@ export default function GuideDetailPage({ params }: { params: { slug: string } }
           </section>
         )}
 
-        <nav aria-label="前後のガイド" className="row" style={{ justifyContent: "space-between", gap: 12, marginTop: 40 }}>
+        <nav aria-label="前後のガイド" className="guide-pager">
           {prev ? (
-            <Link href={`/guide/${prev.slug}`} className="btn btn-secondary btn-sm" style={{ textDecoration: "none" }}>
+            <Link href={`/guide/${prev.slug}`} className="btn btn-secondary btn-sm">
               <Icon name="chevronLeft" size={14} /> {prev.summary}
             </Link>
           ) : <span />}
           {next ? (
-            <Link href={`/guide/${next.slug}`} className="btn btn-secondary btn-sm" style={{ textDecoration: "none" }}>
+            <Link href={`/guide/${next.slug}`} className="btn btn-secondary btn-sm next">
               {next.summary} <Icon name="chevronRight" size={14} />
             </Link>
           ) : <span />}
         </nav>
 
         <PageCta />
-      </main>
-    </div>
+    </PublicShell>
   );
 }
