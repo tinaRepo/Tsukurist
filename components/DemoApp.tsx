@@ -104,6 +104,7 @@ function DemoImageSection({ task, onChange }: {
             const typeLabel = IMAGE_TYPES.find(t => t.key === img.imageType)?.label ?? img.imageType;
             return (
               <div key={img.id} style={{ position: "relative", borderRadius: "var(--radius-md)", overflow: "hidden", border: "1px solid var(--border-soft)", background: "var(--surface)" }}>
+                {/* eslint-disable-next-line @next/next/no-img-element -- ブラウザ内の一時URL（blob:）のプレビューのため、画像最適化の対象外 */}
                 <img src={img.objectUrl} alt={img.fileName} onClick={() => { setPreview(img.objectUrl); setPreviewFileName(img.fileName); }}
                   style={{ width: "100%", aspectRatio: "1", objectFit: "cover", cursor: "pointer" }} />
                 <div className="tag" style={{ position: "absolute", top: 4, left: 4 }}>{typeLabel}</div>
@@ -136,6 +137,7 @@ function DemoImageSection({ task, onChange }: {
       </div>
       {preview && (
         <div onClick={() => setPreview(null)} style={{ position: "fixed", inset: 0, background: "rgba(11,11,15,0.85)", zIndex: 500, display: "flex", alignItems: "center", justifyContent: "center", cursor: "zoom-out" }}>
+          {/* eslint-disable-next-line @next/next/no-img-element -- ブラウザ内の一時URL（blob:）のプレビューのため、画像最適化の対象外 */}
           <img src={preview} alt="preview" style={{ maxWidth: "90vw", maxHeight: "90vh", borderRadius: "var(--radius-lg)", boxShadow: "var(--shadow-lg)" }} />
           <button
             onClick={e => { e.stopPropagation(); handleDownload(preview, previewFileName); }}
@@ -455,6 +457,7 @@ export default function DemoApp({ returnPath, onBack }: {
                       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(80px,1fr))", gap: 8, marginBottom: 10 }}>
                         {pendingImages.map(pi => (
                           <div key={pi.id} style={{ position: "relative", borderRadius: "var(--radius-md)", overflow: "hidden", border: "1px solid var(--border-soft)", background: "var(--surface)" }}>
+                            {/* eslint-disable-next-line @next/next/no-img-element -- ブラウザ内の一時URL（blob:）のプレビューのため、画像最適化の対象外 */}
                             <img src={pi.objectUrl} alt={pi.fileName} style={{ width: "100%", aspectRatio: "1", objectFit: "cover" }} />
                             <div className="tag" style={{ position: "absolute", top: 3, left: 3 }}>
                               {IMAGE_TYPES.find(t => t.key === pi.imageType)?.label}

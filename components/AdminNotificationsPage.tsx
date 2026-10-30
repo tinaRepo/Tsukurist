@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   supabase, adminFetchAllUsers, PLAN_LIMITS,
@@ -107,7 +107,7 @@ export default function AdminNotificationsPage() {
       fetchReleases();
       adminFetchAllUsers().then(setAllUsers).catch(() => { });
     })();
-  }, []);
+  }, [router]);
 
   // データ取得
   async function fetchAnnouncements() {
@@ -610,8 +610,12 @@ function ActionBtn({ label, onClick, danger }: { label: string; onClick: () => v
 function Modal({ title, footer, children, onClose }: {
   title: React.ReactNode; footer: React.ReactNode; children: React.ReactNode; onClose: () => void;
 }) {
+  // 親が毎回新しい onClose を渡しても、キー入力の登録をやり直さないよう ref で最新の関数を保持する
+  const onCloseRef = useRef(onClose);
+  useEffect(() => { onCloseRef.current = onClose; });
+
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onCloseRef.current(); };
     window.addEventListener("keydown", handler);
     document.body.style.overflow = "hidden";
     return () => { window.removeEventListener("keydown", handler); document.body.style.overflow = ""; };

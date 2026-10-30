@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { Field, Icon } from "@/components/TaskShared";
 
@@ -44,9 +44,13 @@ export default function ContactModal({ open, onClose }: Props) {
     });
   }, [open]);
 
+  // 親が毎回新しい onClose を渡しても、キー入力の登録をやり直さないよう ref で最新の関数を保持する
+  const onCloseRef = useRef(onClose);
+  useEffect(() => { onCloseRef.current = onClose; });
+
   useEffect(() => {
     if (!open) return;
-    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onCloseRef.current(); };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [open]);

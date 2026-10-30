@@ -106,23 +106,25 @@ function ImageSection({ task, plan, isOnline, onUpdated }: {
 }) {
   const [uploading, setUploading] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
-  const [prevCount, setPrevCount] = useState<number>(task.images?.length ?? 0);
+  const imageCount = task.images?.length ?? 0;
+  const prevCountRef = useRef(imageCount);
+  const toastTaskIdRef = useRef(task.id);
+  // 枚数の増減を検知して、トーストを1か所だけで出す（成功したときだけ表示される）。
+  // 別のタスクに切り替わったときは、枚数の差ではなく基準値だけを更新する（トーストは出さない）
   useEffect(() => {
-    setPrevCount(task.images?.length ?? 0);
-  }, [task.id]);
-  // 枚数の増減を検知して、トーストを1か所だけで出す（成功したときだけ表示される）
-  useEffect(() => {
-    const currentCount = task.images?.length ?? 0;
-    if (prevCount !== currentCount) {
-      if (currentCount > prevCount) {
-        setToast(`画像をアップロードしました（最新枚数: ${currentCount}枚）`);
-      } else if (currentCount < prevCount) {
-        setToast(`画像を削除しました（最新枚数: ${currentCount}枚）`);
-      }
-      setTimeout(() => setToast(null), 3000);
-      setPrevCount(currentCount);
+    if (toastTaskIdRef.current !== task.id) {
+      toastTaskIdRef.current = task.id;
+      prevCountRef.current = imageCount;
+      return;
     }
-  }, [task.images?.length]);
+    const prevCount = prevCountRef.current;
+    if (prevCount === imageCount) return;
+    setToast(imageCount > prevCount
+      ? `画像をアップロードしました（最新枚数: ${imageCount}枚）`
+      : `画像を削除しました（最新枚数: ${imageCount}枚）`);
+    setTimeout(() => setToast(null), 3000);
+    prevCountRef.current = imageCount;
+  }, [task.id, imageCount]);
   const [imageType, setImageType] = useState<ImageType>("preview");
   const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
   const [preview, setPreview] = useState<string | null>(null);
@@ -1081,6 +1083,7 @@ export default function TaskApp() {
               }}>
               <span style={{ position: "relative", display: "inline-flex" }}>
                 {userAvatar ? (
+                  // eslint-disable-next-line @next/next/no-img-element -- 外部ドメインのアバター / blob:URLのプレビューのため next/image を使わない
                   <img src={userAvatar} alt="avatar" style={{ width: 26, height: 26, borderRadius: "50%", objectFit: "cover" }} />
                 ) : (
                   <div style={{
@@ -1718,6 +1721,7 @@ export default function TaskApp() {
                         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(80px,1fr))", gap: 8, marginBottom: 10 }}>
                           {pendingImages.map(pi => (
                             <div key={pi.id} style={{ position: "relative", borderRadius: "var(--radius-md)", overflow: "hidden", border: "1px solid var(--border-soft)", background: "var(--surface)" }}>
+                              {/* eslint-disable-next-line @next/next/no-img-element -- 外部ドメインのアバター / blob:URLのプレビューのため next/image を使わない */}
                               <img src={pi.previewUrl} alt={pi.file.name}
                                 style={{ width: "100%", aspectRatio: "1", objectFit: "cover" }} />
                               <div className="tag" style={{ position: "absolute", top: 3, left: 3 }}>
