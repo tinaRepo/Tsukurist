@@ -4,6 +4,7 @@ import type { NextRequest } from "next/server";
 import { createAdminClient, isCronAuthorized } from "@/lib/server/admin";
 import { alertAdmin, finishJobRun, pingHealthchecks, startJobRun } from "@/lib/server/monitor";
 import { getLogger, withRequestLog } from "@/lib/server/logger";
+import { DEFAULT_NOTIFY_DAYS, NOTIFY_DAYS_MAX, normalizeNotifyDays, shouldNotify } from "@/lib/notify";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -11,7 +12,7 @@ export const maxDuration = 60;
 
 const JOB = "deadline-notify";
 const log = getLogger("cron.deadline-notify");
-const DAYS_AHEAD = 7;            // 納期までこの日数以内のタスクを通知
+const DAYS_AHEAD = NOTIFY_DAYS_MAX; // 取得する納期の範囲（個別リマインドの最大値に合わせる）。通知するかはユーザー設定で判定
 const CONCURRENCY = 10;
 const TIME_BUDGET_MS = 50_000;   // maxDuration(60秒)より手前で打ち切る
 const PAGE = 1000;
@@ -23,10 +24,11 @@ const LOG_RETENTION_LOW_DAYS = 14;
 const LOG_RETENTION_HIGH_DAYS = 90;
 
 type Sub = { user_id: string; endpoint: string; subscription: any };
-type TaskRow = { user_id: string; title: string; deadline: string };
+type TaskRow = { user_id: string; title: string; deadline: string; remind_before_days: number | null };
+type MatchedTask = TaskRow & { left: number };
 
 // 毎時0分に実行され、「通知時刻（user_settings.notify_hour・JST）が現在のJST時」のユーザーのうち、
-// 対象タスクがある通知購読ユーザーの全端末へWeb Pushを送る。
+// 「通知する日（notify_days）」またはタスク個別リマインド（remind_before_days）に当たるタスクがある通知購読ユーザーの全端末へWeb Pushを送る。
 //   起動元は Cloudflare Workers の Cron Trigger（cloudflare/cron-worker/。docs/cloudflare-cron.md）。vercel.json には crons を置かない。
 //   Authorization: Bearer <CRON_SECRET> 必須。詳細はレスポンスに含めない（app_logs・job_runsに記録）
 export const GET = withRequestLog("cron.deadline-notify", async (request: NextRequest) => {
@@ -61,24 +63,31 @@ export const GET = withRequestLog("cron.deadline-notify", async (request: NextRe
     for (const s of subs) subsByUser.set(s.user_id, [...(subsByUser.get(s.user_id) ?? []), s]);
 
     // 2) 通知時刻が「今のJST時」のユーザーだけを対象にする（user_settings が無いユーザーは既定の8時）
-    const settings = subsByUser.size === 0 ? [] : await fetchAll<{ user_id: string; notify_hour: number }>(range =>
-      admin.from("user_settings").select("user_id, notify_hour").order("user_id").range(range[0], range[1]));
+    const settings = subsByUser.size === 0 ? [] : await fetchAll<{ user_id: string; notify_hour: number; notify_days: number[] }>(range =>
+      admin.from("user_settings").select("user_id, notify_hour, notify_days").order("user_id").range(range[0], range[1]));
     const hourByUser = new Map(settings.map(s => [s.user_id, s.notify_hour]));
+    const daysByUser = new Map(settings.map(s => [s.user_id, normalizeNotifyDays(s.notify_days)]));
     const targets = new Set(
       Array.from(subsByUser.keys()).filter(uid => (hourByUser.get(uid) ?? DEFAULT_NOTIFY_HOUR) === jstHour)
     );
 
     // 3) 納期が近い未完了タスク（部分インデックス idx_tasks_active_deadline を利用）
     const tasks = targets.size === 0 ? [] : await fetchAll<TaskRow>(range => admin.from("tasks")
-      .select("user_id, title, deadline")
+      .select("user_id, title, deadline, remind_before_days")
       .gte("deadline", today).lte("deadline", limitDate)
       .not("status", "in", "(done,cancelled)")
       .order("id").range(range[0], range[1]));
 
-    const byUser = new Map<string, TaskRow[]>();
+    // 全体の「通知する日」またはタスク個別リマインドに当たるものだけを残す
+    const todayMs = Date.parse(today);
+    const byUser = new Map<string, MatchedTask[]>();
     for (const t of tasks) {
       if (!targets.has(t.user_id)) continue;
-      byUser.set(t.user_id, [...(byUser.get(t.user_id) ?? []), t]);
+      const left = Math.round((Date.parse(t.deadline) - todayMs) / 86400_000);
+      if (!shouldNotify(left, daysByUser.get(t.user_id) ?? DEFAULT_NOTIFY_DAYS, t.remind_before_days)) continue;
+      const list = byUser.get(t.user_id);
+      if (list) list.push({ ...t, left });
+      else byUser.set(t.user_id, [{ ...t, left }]);
     }
 
     // 4) 同じ日の重複送信を防ぐ（先に記録できたユーザーだけ送る）。通知時刻を変えても1日1回まで
@@ -99,11 +108,10 @@ export const GET = withRequestLog("cron.deadline-notify", async (request: NextRe
     const jobs: { sub: Sub; payload: string }[] = [];
     for (const uid of Array.from(claimedIds)) {
       const list = (byUser.get(uid) ?? []).sort((a, b) => a.deadline.localeCompare(b.deadline));
-      const days = Math.round((Date.parse(list[0].deadline) - Date.parse(today)) / 86400_000);
-      const when = days === 0 ? "本日" : `あと${days}日`;
+      const when = list[0].left === 0 ? "本日" : `あと${list[0].left}日`;
       const payload = JSON.stringify({
         title: "納期が近いタスクがあります",
-        body: `${list.length}件が${DAYS_AHEAD}日以内に納期です（最短: ${list[0].title}・${when}）`,
+        body: `${list.length}件のタスクの納期が近づいています（最短: ${list[0].title}・${when}）`,
         url: appUrl,
       });
       (subsByUser.get(uid) ?? []).forEach(sub => jobs.push({ sub, payload }));

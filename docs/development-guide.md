@@ -4,18 +4,19 @@
 
 ツクリストは、依頼・タスクの納期、金額、確認用画像を管理するWebアプリです。
 
-| 領域 | 主な技術 |
-| --- | --- |
-| アプリ | Next.js 14 (App Router)、React、TypeScript |
-| DB・認証・画像 | Supabase |
-| ホスティング・Cron | Vercel |
-| 決済・メール・通知 | Stripe、Resend、Web Push |
+| 領域               | 主な技術                                   |
+| ------------------ | ------------------------------------------ |
+| アプリ             | Next.js 14 (App Router)、React、TypeScript |
+| DB・認証・画像     | Supabase                                   |
+| ホスティング・Cron | Vercel                                     |
+| 決済・メール・通知 | Stripe、Resend、Web Push                   |
 
 主なコードの場所:
 
 - `app/`: ページ、APIルート、メタデータ
 - `components/`, `hooks/`: UI、共有フック
 - `lib/supabase.ts`: Supabaseクライアント、型、データ操作
+- `lib/notify.ts`: 納期通知の定数・判定（通知する日／個別リマインド）。ブラウザとCronの両方から使うため副作用を持たせない。値の範囲はDBのcheck制約と同じ
 - `lib/server/`: service roleを使うサーバー専用処理
 - `lib/server/logger.ts`: サーバーのログ出力（log4j2風。`app_logs` に保存）
 - `supabase/migrations/`: DB変更履歴

@@ -31,6 +31,7 @@ import {
 import { TagPicker, TagManagerModal } from "./TagPicker";
 import PushNotificationToggle from "./PushNotificationToggle";
 import NotifyHourSelect from "./NotifyHourSelect";
+import { TASK_REMIND_OPTIONS, formatDaysBefore } from "@/lib/notify";
 const NotificationsModal = dynamic(() => import("./NotificationsModal"), { ssr: false });
 const ContactModal = dynamic(() => import("./ContactModal"), { ssr: false });
 const InstallPromptBanner = dynamic(() => import("./InstallPromptBanner"), { ssr: false });
@@ -44,6 +45,7 @@ type FormValues = {
   deadline: string; price: string; currency: string;
   status: TaskStatus; submission_date: string; notes: string;
   tagIds: string[];
+  remindBefore: string; // "" = なし / "0"〜"30"
 };
 
 // 新規登録時に仮保持する画像キュー
@@ -57,7 +59,7 @@ type PendingImage = {
 const EMPTY_FORM: FormValues = {
   title: "", assigneeName: "", contact: "", ordered_at: "", deadline: "",
   price: "", currency: "JPY", status: "pending", submission_date: "", notes: "",
-  tagIds: [],
+  tagIds: [], remindBefore: "",
 };
 
 type ViewMode = "list" | "calendar";
@@ -823,6 +825,7 @@ export default function TaskApp() {
       deadline: t.deadline ?? "", price: t.price?.toString() ?? "", currency: t.currency,
       status: t.status, submission_date: t.submission_date ?? "", notes: t.notes ?? "",
       tagIds: t.tag_ids ?? [],
+      remindBefore: t.remind_before_days == null ? "" : String(t.remind_before_days),
     });
     setEditId(t.id); setShowForm(true); setDetailId(null);
   }
@@ -837,6 +840,7 @@ export default function TaskApp() {
       ordered_at: form.ordered_at || null, deadline: form.deadline || null,
       price: form.price ? Number(form.price) : null, currency: form.currency,
       status: form.status, submission_date: form.submission_date || null, notes: form.notes || null,
+      remind_before_days: form.remindBefore === "" ? null : Number(form.remindBefore),
     };
     const change: OfflineTaskChange = {
       userId: user.id, taskId, action: editId ? "update" : "create",
@@ -1329,6 +1333,7 @@ export default function TaskApp() {
                     ["依頼日", fmtDate(detailItem.ordered_at)],
                     ["納期", fmtDate(detailItem.deadline)],
                     ["提出日", fmtDate(detailItem.submission_date)],
+                    ["リマインド", detailItem.remind_before_days == null ? "—" : `納期の${formatDaysBefore(detailItem.remind_before_days)}`],
                     ["金額", fmtPrice(detailItem.price, detailItem.currency)],
                     ["タグ", tagsOf(detailItem).length > 0
                       ? <span className="row" style={{ gap: 4, flexWrap: "wrap" }}>{tagsOf(detailItem).map(t => <span key={t.id} className="tag-pill">{t.name}</span>)}</span>
@@ -1654,6 +1659,17 @@ export default function TaskApp() {
                 <Field label="SNS/連絡先（X ID等）"><input value={form.contact} onChange={e => setForm({ ...form, contact: e.target.value })} placeholder="例: @your_handle" className="input" /></Field>
                 <DateField label="依頼日" value={form.ordered_at} onChange={v => setForm({ ...form, ordered_at: v })} />
                 <DateField label="納期" value={form.deadline} onChange={v => setForm({ ...form, deadline: v })} />
+                <Field label="リマインド（納期の何日前に通知）">
+                  <select value={form.remindBefore} onChange={e => setForm({ ...form, remindBefore: e.target.value })} className="select">
+                    <option value="">設定しない</option>
+                    {TASK_REMIND_OPTIONS.map(n => <option key={n} value={n}>{formatDaysBefore(n)}</option>)}
+                  </select>
+                  <div className="text-meta" style={{ marginTop: 6, lineHeight: 1.6 }}>
+                    {form.deadline
+                      ? "このタスクだけの追加の通知です。通知をオンにした端末に、通知時刻に届きます。"
+                      : "納期を設定すると有効になります。"}
+                  </div>
+                </Field>
                 <DateField label="提出日" value={form.submission_date} onChange={v => setForm({ ...form, submission_date: v })} />
                 <Field label="金額（円）">
                   <input

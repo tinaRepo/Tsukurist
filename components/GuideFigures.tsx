@@ -361,14 +361,14 @@ export function FigUserMenu({ highlight, caption }: { highlight: string[]; capti
 // ---- プッシュ通知・ホーム画面追加 ----
 export function FigPush() {
   return (
-    <Figure caption="毎朝8時（日本時間）に届く通知のイメージ。納期が7日以内のタスクがある日だけ届きます。">
+    <Figure caption="設定した時刻（初期は毎朝8時・日本時間）に届く通知のイメージ。「通知する日」や個別リマインドに当たるタスクがある日だけ届きます。">
       <div style={{ background: "var(--bg)", borderRadius: "var(--radius-lg)", padding: 12, display: "flex", gap: 12, maxWidth: 380, margin: "0 auto", border: "1px solid var(--border-soft)" }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/icon0.svg" alt="" width={40} height={40} style={{ borderRadius: 9, flexShrink: 0 }} />
         <div style={{ minWidth: 0 }}>
           <div className="row" style={{ justifyContent: "space-between", fontSize: 11, color: "var(--meta)" }}><span>ツクリスト</span><span>8:00</span></div>
           <div style={{ fontWeight: 600, fontSize: 14, margin: "2px 0" }}>納期が近いタスクがあります</div>
-          <div style={{ fontSize: 13, color: "var(--fg-2)", lineHeight: 1.5 }}>3件が7日以内に納期です（最短: 名刺デザイン一式・あと2日）</div>
+          <div style={{ fontSize: 13, color: "var(--fg-2)", lineHeight: 1.5 }}>3件のタスクの納期が近づいています（最短: 名刺デザイン一式・あと2日）</div>
         </div>
       </div>
     </Figure>
