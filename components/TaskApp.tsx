@@ -39,6 +39,7 @@ const ShareSettingsModal = dynamic(() => import("./ShareSettingsModal"), { ssr: 
 // 開くまで使わないUIはコード分割する
 const TaskCalendar = dynamic(() => import("./TaskCalendar"), { ssr: false });
 const DeleteAccountModal = dynamic(() => import("./DeleteAccountModal"), { ssr: false });
+const AccountSettingsModal = dynamic(() => import("./AccountSettingsModal"), { ssr: false });
 
 type FormValues = {
   title: string; assigneeName: string; contact: string; ordered_at: string;
@@ -330,6 +331,7 @@ export default function TaskApp() {
   const [showNameEdit, setShowNameEdit] = useState(false);
   const [nameInput, setNameInput] = useState("");
   const [showDeleteAccount, setShowDeleteAccount] = useState(false);
+  const [showAccountSettings, setShowAccountSettings] = useState(false);
   const [showShareSettings, setShowShareSettings] = useState(false);
   const [showTagManager, setShowTagManager] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -989,13 +991,21 @@ export default function TaskApp() {
   }, [detailId, tasks]);
 
   useEffect(() => {
-    if (showForm || detailId) {
+    if (showForm || detailId || showUserMenu || showAccountSettings) {
       document.body.style.overflow = "hidden";
     } else {
       document.body.style.overflow = "";
     }
     return () => { document.body.style.overflow = ""; };
-  }, [showForm, detailId]);
+  }, [showForm, detailId, showUserMenu, showAccountSettings]);
+
+  // Escキーでユーザーメニューを閉じる
+  useEffect(() => {
+    if (!showUserMenu) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setShowUserMenu(false); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [showUserMenu]);
   const plan = (profile?.plan ?? "free") as Plan;
   const hasCalendarAccess = !!profile && profile.plan !== "free";
   const lastProvider = profile?.last_login_provider ?? null;
@@ -1106,76 +1116,62 @@ export default function TaskApp() {
               <Icon name="chevronDown" size={13} />
             </button>
             {showUserMenu && (
-              <div className="user-menu">
-                <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--divider)" }}>
-                  <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 4, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{user?.email}</div>
-                  {profile && <PlanBadge plan={profile.plan} />}
+              <>
+                <div className="user-menu-backdrop" onClick={() => setShowUserMenu(false)} aria-hidden="true" />
+                <div className="user-menu" role="menu" aria-label="ユーザーメニュー">
+                  <div className="user-menu-head">
+                    <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 4, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{user?.email}</div>
+                    {profile && <PlanBadge plan={profile.plan} />}
+                  </div>
+
+                  <div className="user-menu-label">プラン</div>
+                  <button onClick={() => window.location.href = "/pricing"} disabled={!isOnline}
+                    title={!isOnline ? "プラン変更はオンライン復帰後に利用できます" : undefined} className="user-menu-item accent">
+                    <span className="user-menu-item-icon"><Icon name="creditCard" size={17} /></span>
+                    <span>プランをアップグレード</span>
+                  </button>
+                  {profile?.plan === "premium" && (
+                    <button onClick={() => { setShowShareSettings(true); setShowUserMenu(false); }} disabled={!isOnline}
+                      title={!isOnline ? "共有ページ設定はオンライン復帰後に利用できます" : undefined} className="user-menu-item">
+                      <span className="user-menu-item-icon"><Icon name="link" size={17} /></span>
+                      <span>共有ページを設定</span>
+                    </button>
+                  )}
+
+                  <div className="user-menu-label">通知</div>
+                  <PushNotificationToggle enabled={isOnline} />
+                  <NotifyHourSelect userId={user?.id ?? null} enabled={isOnline} />
+
+                  <div className="user-menu-label">データ</div>
+                  <button onClick={() => { setShowTagManager(true); setShowUserMenu(false); }} disabled={!isOnline}
+                    title={!isOnline ? "タグ管理はオンライン復帰後に利用できます" : undefined} className="user-menu-item">
+                    <span className="user-menu-item-icon"><Icon name="tag" size={17} /></span>
+                    <span>タグを管理</span>
+                  </button>
+                  <button onClick={() => window.location.href = "/tools"} className="user-menu-item">
+                    <span className="user-menu-item-icon"><Icon name="calendar" size={17} /></span>
+                    <span>無料ツール</span>
+                  </button>
+
+                  <div className="user-menu-label">アカウント</div>
+                  <button onClick={() => { setShowAccountSettings(true); setShowUserMenu(false); }} disabled={!isOnline}
+                    title={!isOnline ? "アカウント設定はオンライン復帰後に利用できます" : undefined} className="user-menu-item">
+                    <span className="user-menu-item-icon"><Icon name="user" size={17} /></span>
+                    <span>アカウント設定</span>
+                  </button>
+                  {profile?.is_admin && (
+                    <button onClick={() => window.location.href = "/admin"} disabled={!isOnline} className="user-menu-item accent">
+                      <span className="user-menu-item-icon"><Icon name="users" size={17} /></span>
+                      <span>管理者ページ</span>
+                    </button>
+                  )}
+                  <button onClick={requestLogout} disabled={!isOnline}
+                    title={!isOnline ? "ログアウトはオンライン復帰後に利用できます" : undefined} className="user-menu-item danger" style={{ fontWeight: 600 }}>
+                    <span className="user-menu-item-icon"><Icon name="logout" size={17} /></span>
+                    <span>ログアウト</span>
+                  </button>
                 </div>
-                <button onClick={() => window.location.href = "/pricing"} disabled={!isOnline}
-                  title={!isOnline ? "プラン変更はオンライン復帰後に利用できます" : undefined} className="user-menu-item accent">
-                  <span className="user-menu-item-icon"><Icon name="creditCard" size={17} /></span>
-                  <span>プランをアップグレード</span>
-                </button>
-                {profile?.plan === "premium" && (
-                  <button onClick={() => { setShowShareSettings(true); setShowUserMenu(false); }} disabled={!isOnline}
-                    title={!isOnline ? "共有ページ設定はオンライン復帰後に利用できます" : undefined} className="user-menu-item">
-                    <span className="user-menu-item-icon"><Icon name="link" size={17} /></span>
-                    <span>共有ページを設定</span>
-                  </button>
-                )}
-                <PushNotificationToggle enabled={isOnline} />
-                <NotifyHourSelect userId={user?.id ?? null} enabled={isOnline} />
-                <button onClick={() => { setShowTagManager(true); setShowUserMenu(false); }} disabled={!isOnline}
-                  title={!isOnline ? "タグ管理はオンライン復帰後に利用できます" : undefined} className="user-menu-item">
-                  <span className="user-menu-item-icon"><Icon name="tag" size={17} /></span>
-                  <span>タグを管理</span>
-                </button>
-                <button onClick={() => { setNameInput(profile?.display_name ?? ""); setShowNameEdit(true); setShowUserMenu(false); }}
-                  disabled={!isOnline} title={!isOnline ? "名前の変更はオンライン復帰後に利用できます" : undefined} className="user-menu-item">
-                  <span className="user-menu-item-icon"><Icon name="user" size={17} /></span>
-                  <span>名前を変更</span>
-                </button>
-                <button onClick={openPasswordModal} disabled={!isOnline}
-                  title={!isOnline ? "パスワード設定はオンライン復帰後に利用できます" : undefined} className="user-menu-item">
-                  <span className="user-menu-item-icon"><Icon name="lock" size={17} /></span>
-                  <span>{hasPassword ? "パスワードを変更" : "パスワードを設定"}</span>
-                </button>
-                {isGoogleLinked ? (
-                  <button onClick={requestUnlinkGoogle} disabled={!isOnline}
-                    title={!isOnline ? "Google連携の解除はオンライン復帰後に利用できます" : undefined} className="user-menu-item">
-                    <span className="user-menu-item-icon"><Icon name="link" size={17} /></span>
-                    <span>Google連携を解除</span>
-                  </button>
-                ) : (
-                  <button onClick={handleLinkGoogle} disabled={!isOnline || linking}
-                    title={!isOnline ? "Google連携はオンライン復帰後に利用できます" : undefined} className="user-menu-item">
-                    <span className="user-menu-item-icon"><Icon name="link" size={17} /></span>
-                    <span>{linking ? "連携中…" : "Googleと連携する"}</span>
-                  </button>
-                )}
-                {profile?.is_admin && (
-                  <button onClick={() => window.location.href = "/admin"} disabled={!isOnline} className="user-menu-item accent">
-                    <span className="user-menu-item-icon"><Icon name="users" size={17} /></span>
-                    <span>管理者ページ</span>
-                  </button>
-                )}
-                {!profile?.is_admin && (
-                  <button onClick={() => { setShowDeleteAccount(true); setShowUserMenu(false); }}
-                    disabled={!isOnline} title={!isOnline ? "アカウント削除はオンライン復帰後に利用できます" : undefined} className="user-menu-item danger">
-                    <span className="user-menu-item-icon"><Icon name="trash" size={17} /></span>
-                    <span>アカウントを削除</span>
-                  </button>
-                )}
-                <button onClick={() => window.location.href = "/tools"} className="user-menu-item">
-                  <span className="user-menu-item-icon"><Icon name="calendar" size={17} /></span>
-                  <span>無料ツール</span>
-                </button>
-                <button onClick={requestLogout} disabled={!isOnline}
-                  title={!isOnline ? "ログアウトはオンライン復帰後に利用できます" : undefined} className="user-menu-item danger" style={{ fontWeight: 600 }}>
-                  <span className="user-menu-item-icon"><Icon name="logout" size={17} /></span>
-                  <span>ログアウト</span>
-                </button>
-              </div>
+              </>
             )}
           </div>
         </div>
@@ -1373,6 +1369,20 @@ export default function TaskApp() {
         online={isOnline}
       />
       <ShareSettingsModal open={showShareSettings} onClose={() => setShowShareSettings(false)} online={isOnline} />
+      <AccountSettingsModal
+        open={showAccountSettings}
+        onClose={() => setShowAccountSettings(false)}
+        online={isOnline}
+        hasPassword={hasPassword}
+        isGoogleLinked={isGoogleLinked}
+        linking={linking}
+        isAdmin={!!profile?.is_admin}
+        onEditName={() => { setShowAccountSettings(false); setNameInput(profile?.display_name ?? ""); setShowNameEdit(true); }}
+        onPassword={() => { setShowAccountSettings(false); openPasswordModal(); }}
+        onLinkGoogle={() => { setShowAccountSettings(false); void handleLinkGoogle(); }}
+        onUnlinkGoogle={() => { setShowAccountSettings(false); requestUnlinkGoogle(); }}
+        onDeleteAccount={() => { setShowAccountSettings(false); setShowDeleteAccount(true); }}
+      />
 
       {showCalendarUpgrade && (
         <div className="modal-overlay" onClick={() => setShowCalendarUpgrade(false)}>

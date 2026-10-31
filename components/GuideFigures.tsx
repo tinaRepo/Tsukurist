@@ -329,17 +329,14 @@ const MENU: { label: string; icon: IconName; tone?: "accent" | "danger" }[] = [
   { label: "共有ページを設定", icon: "link" },
   { label: "通知オフ（タップでオン）", icon: "bell" },
   { label: "タグを管理", icon: "tag" },
-  { label: "名前を変更", icon: "user" },
-  { label: "パスワードを変更", icon: "lock" },
-  { label: "Googleと連携する", icon: "link" },
-  { label: "アカウントを削除", icon: "trash", tone: "danger" },
+  { label: "アカウント設定", icon: "user" },
   { label: "ログアウト", icon: "logout", tone: "danger" },
 ];
 
 export function FigUserMenu({ highlight, caption }: { highlight: string[]; caption: string }) {
   return (
     <Figure caption={caption}>
-      <div className="user-menu" style={{ position: "static", maxWidth: 280, margin: "0 auto" }}>
+      <div className="user-menu" style={{ position: "static", maxWidth: 280, margin: "0 auto", maxHeight: "none", overflow: "visible" }}>
         <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--divider)" }}>
           <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 4 }}>you@example.com</div>
           <span className="badge badge-neutral">無料</span>

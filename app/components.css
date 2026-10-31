@@ -340,8 +340,10 @@
   width: 100%;
   min-width: 0;
   padding-left: 10px;
-  padding-right: 34px;   /* バツボタンの分だけ右を空ける */
-  font-size: 16px;       /* iOSの自動ズーム防止のため16px未満にしない */
+  padding-right: 34px;
+  /* バツボタンの分だけ右を空ける */
+  font-size: 16px;
+  /* iOSの自動ズーム防止のため16px未満にしない */
 }
 
 .date-range-clear {
@@ -656,7 +658,7 @@
     align-items: flex-start;
   }
 
-  .app-header > .row {
+  .app-header>.row {
     width: 100%;
     min-width: 0;
     justify-content: space-between;
@@ -667,16 +669,16 @@
     justify-content: flex-start !important;
   }
 
-  .demo-header-actions > .row:first-child {
+  .demo-header-actions>.row:first-child {
     flex: 1 1 auto;
     margin-right: auto;
   }
 
-  .demo-header-actions > div:last-child {
+  .demo-header-actions>div:last-child {
     margin-left: auto;
   }
 
-  .app-header > .row > .row {
+  .app-header>.row>.row {
     gap: 8px !important;
   }
 
@@ -737,9 +739,73 @@
   border: 1px solid var(--border-soft);
   box-shadow: var(--shadow-lg);
   /* 浮遊メニューのみ影を許容 */
-  min-width: 220px;
-  overflow: hidden;
+  min-width: 240px;
+  /* 項目が増えても画面内に収め、メニュー内だけをスクロールさせる */
+  max-height: calc(100vh - 96px);
+  max-height: calc(100dvh - 96px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   z-index: 99;
+}
+
+/* メール・プラン表示はスクロールしても上に残す */
+.user-menu-head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 12px 16px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--divider);
+}
+
+/* グループ見出し */
+.user-menu-label {
+  padding: 12px 16px 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--meta);
+  letter-spacing: 0.04em;
+  background: var(--surface);
+  border-bottom: 1px solid var(--divider);
+}
+
+/* メニュー外タップで閉じる＋背景スクロール防止用 */
+.user-menu-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 98;
+  background: transparent;
+  touch-action: none;
+}
+
+/* アカウント設定モーダルなどの項目リスト */
+.settings-list {
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+@media (max-width: 600px) {
+  .user-menu-backdrop {
+    background: rgba(0, 0, 0, 0.4);
+  }
+
+  /* 画面下のシート型。内側だけスクロールする */
+  .user-menu {
+    position: fixed;
+    left: 8px;
+    right: 8px;
+    top: auto;
+    bottom: calc(8px + env(safe-area-inset-bottom));
+    max-height: calc(100vh - 72px);
+    max-height: calc(100dvh - 72px);
+    border-radius: var(--radius-lg);
+  }
+
+  .user-menu-item {
+    min-height: 48px;
+  }
 }
 
 .user-menu-item {
