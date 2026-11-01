@@ -29,20 +29,23 @@ import {
   type OfflineSnapshot, type OfflineTaskChange,
 } from "@/lib/offline-tasks";
 import { TagPicker, TagManagerModal } from "./TagPicker";
-import PushNotificationToggle from "./PushNotificationToggle";
+import { TASK_REMIND_OPTIONS, formatDaysBefore } from "@/lib/notify";
 const NotificationsModal = dynamic(() => import("./NotificationsModal"), { ssr: false });
+const NotificationSettingsModal = dynamic(() => import("./NotificationSettingsModal"), { ssr: false });
 const ContactModal = dynamic(() => import("./ContactModal"), { ssr: false });
 const InstallPromptBanner = dynamic(() => import("./InstallPromptBanner"), { ssr: false });
 const ShareSettingsModal = dynamic(() => import("./ShareSettingsModal"), { ssr: false });
 // 開くまで使わないUIはコード分割する
 const TaskCalendar = dynamic(() => import("./TaskCalendar"), { ssr: false });
 const DeleteAccountModal = dynamic(() => import("./DeleteAccountModal"), { ssr: false });
+const AccountSettingsModal = dynamic(() => import("./AccountSettingsModal"), { ssr: false });
 
 type FormValues = {
   title: string; assigneeName: string; contact: string; ordered_at: string;
   deadline: string; price: string; currency: string;
   status: TaskStatus; submission_date: string; notes: string;
   tagIds: string[];
+  remindBefore: string; // "" = なし / "0"〜"30"
 };
 
 // 新規登録時に仮保持する画像キュー
@@ -56,7 +59,7 @@ type PendingImage = {
 const EMPTY_FORM: FormValues = {
   title: "", assigneeName: "", contact: "", ordered_at: "", deadline: "",
   price: "", currency: "JPY", status: "pending", submission_date: "", notes: "",
-  tagIds: [],
+  tagIds: [], remindBefore: "",
 };
 
 type ViewMode = "list" | "calendar";
@@ -103,23 +106,25 @@ function ImageSection({ task, plan, isOnline, onUpdated }: {
 }) {
   const [uploading, setUploading] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
-  const [prevCount, setPrevCount] = useState<number>(task.images?.length ?? 0);
+  const imageCount = task.images?.length ?? 0;
+  const prevCountRef = useRef(imageCount);
+  const toastTaskIdRef = useRef(task.id);
+  // 枚数の増減を検知して、トーストを1か所だけで出す（成功したときだけ表示される）。
+  // 別のタスクに切り替わったときは、枚数の差ではなく基準値だけを更新する（トーストは出さない）
   useEffect(() => {
-    setPrevCount(task.images?.length ?? 0);
-  }, [task.id]);
-  // 枚数の増減を検知して、トーストを1か所だけで出す（成功したときだけ表示される）
-  useEffect(() => {
-    const currentCount = task.images?.length ?? 0;
-    if (prevCount !== currentCount) {
-      if (currentCount > prevCount) {
-        setToast(`画像をアップロードしました（最新枚数: ${currentCount}枚）`);
-      } else if (currentCount < prevCount) {
-        setToast(`画像を削除しました（最新枚数: ${currentCount}枚）`);
-      }
-      setTimeout(() => setToast(null), 3000);
-      setPrevCount(currentCount);
+    if (toastTaskIdRef.current !== task.id) {
+      toastTaskIdRef.current = task.id;
+      prevCountRef.current = imageCount;
+      return;
     }
-  }, [task.images?.length]);
+    const prevCount = prevCountRef.current;
+    if (prevCount === imageCount) return;
+    setToast(imageCount > prevCount
+      ? `画像をアップロードしました（最新枚数: ${imageCount}枚）`
+      : `画像を削除しました（最新枚数: ${imageCount}枚）`);
+    setTimeout(() => setToast(null), 3000);
+    prevCountRef.current = imageCount;
+  }, [task.id, imageCount]);
   const [imageType, setImageType] = useState<ImageType>("preview");
   const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
   const [preview, setPreview] = useState<string | null>(null);
@@ -230,9 +235,9 @@ function ImageSection({ task, plan, isOnline, onUpdated }: {
                 </button>
                 {url && (
                   <button onClick={e => { e.stopPropagation(); handleDownload(url, img.file_name); }}
-                      title={!isOnline ? "ダウンロードはオンライン復帰後に利用できます" : "ダウンロード"}
-                      aria-label={`${img.file_name}をダウンロード`} disabled={!isOnline}
-                      className="icon-btn" style={{
+                    title={!isOnline ? "ダウンロードはオンライン復帰後に利用できます" : "ダウンロード"}
+                    aria-label={`${img.file_name}をダウンロード`} disabled={!isOnline}
+                    className="icon-btn" style={{
                       position: "absolute", bottom: 4, right: 4, width: 22, height: 22,
                       background: "rgba(0,0,0,0.55)", border: "none", opacity: isOnline ? 1 : 0.5,
                       cursor: isOnline ? "pointer" : "not-allowed",
@@ -306,7 +311,7 @@ export default function TaskApp() {
   const [syncing, setSyncing] = useState(false);
   const [offlineMessage, setOfflineMessage] = useState<string | null>(null);
   const syncingChanges = useRef<Promise<void> | null>(null);
-  const loadRef = useRef<() => Promise<void>>(async () => {});
+  const loadRef = useRef<() => Promise<void>>(async () => { });
   const loadSequence = useRef(0);
   const taskOverrides = useRef(new Map<string, Task | null>());
   const thumbnailPathsByTask = useRef(new Map<string, string>());
@@ -325,6 +330,8 @@ export default function TaskApp() {
   const [showNameEdit, setShowNameEdit] = useState(false);
   const [nameInput, setNameInput] = useState("");
   const [showDeleteAccount, setShowDeleteAccount] = useState(false);
+  const [showAccountSettings, setShowAccountSettings] = useState(false);
+  const [showNotificationSettings, setShowNotificationSettings] = useState(false);
   const [showShareSettings, setShowShareSettings] = useState(false);
   const [showTagManager, setShowTagManager] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -822,6 +829,7 @@ export default function TaskApp() {
       deadline: t.deadline ?? "", price: t.price?.toString() ?? "", currency: t.currency,
       status: t.status, submission_date: t.submission_date ?? "", notes: t.notes ?? "",
       tagIds: t.tag_ids ?? [],
+      remindBefore: t.remind_before_days == null ? "" : String(t.remind_before_days),
     });
     setEditId(t.id); setShowForm(true); setDetailId(null);
   }
@@ -836,6 +844,7 @@ export default function TaskApp() {
       ordered_at: form.ordered_at || null, deadline: form.deadline || null,
       price: form.price ? Number(form.price) : null, currency: form.currency,
       status: form.status, submission_date: form.submission_date || null, notes: form.notes || null,
+      remind_before_days: form.remindBefore === "" ? null : Number(form.remindBefore),
     };
     const change: OfflineTaskChange = {
       userId: user.id, taskId, action: editId ? "update" : "create",
@@ -982,13 +991,27 @@ export default function TaskApp() {
   }, [detailId, tasks]);
 
   useEffect(() => {
-    if (showForm || detailId) {
+    if (
+      showForm || detailId || showUserMenu || showAccountSettings || showNotificationSettings ||
+      showShareSettings || showTagManager || showNameEdit || showPasswordModal || showUnlinkWarning
+    ) {
       document.body.style.overflow = "hidden";
     } else {
       document.body.style.overflow = "";
     }
     return () => { document.body.style.overflow = ""; };
-  }, [showForm, detailId]);
+  }, [
+    showForm, detailId, showUserMenu, showAccountSettings, showNotificationSettings,
+    showShareSettings, showTagManager, showNameEdit, showPasswordModal, showUnlinkWarning,
+  ]);
+
+  // Escキーでユーザーメニューを閉じる
+  useEffect(() => {
+    if (!showUserMenu) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setShowUserMenu(false); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [showUserMenu]);
   const plan = (profile?.plan ?? "free") as Plan;
   const hasCalendarAccess = !!profile && profile.plan !== "free";
   const lastProvider = profile?.last_login_provider ?? null;
@@ -1076,6 +1099,7 @@ export default function TaskApp() {
               }}>
               <span style={{ position: "relative", display: "inline-flex" }}>
                 {userAvatar ? (
+                  // eslint-disable-next-line @next/next/no-img-element -- 外部ドメインのアバター / blob:URLのプレビューのため next/image を使わない
                   <img src={userAvatar} alt="avatar" style={{ width: 26, height: 26, borderRadius: "50%", objectFit: "cover" }} />
                 ) : (
                   <div style={{
@@ -1098,71 +1122,65 @@ export default function TaskApp() {
               <Icon name="chevronDown" size={13} />
             </button>
             {showUserMenu && (
-              <div className="user-menu">
-                <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--divider)" }}>
-                  <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 4, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{user?.email}</div>
-                  {profile && <PlanBadge plan={profile.plan} />}
+              <>
+                <div className="user-menu-backdrop" onClick={() => setShowUserMenu(false)} aria-hidden="true" />
+                <div className="user-menu" role="menu" aria-label="ユーザーメニュー">
+                  <div className="user-menu-head">
+                    <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 4, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{user?.email}</div>
+                    {profile && <PlanBadge plan={profile.plan} />}
+                  </div>
+
+                  <div className="user-menu-label">プラン</div>
+                  <button onClick={() => window.location.href = "/pricing"} disabled={!isOnline}
+                    title={!isOnline ? "プラン変更はオンライン復帰後に利用できます" : undefined} className="user-menu-item accent">
+                    <span className="user-menu-item-icon"><Icon name="creditCard" size={17} /></span>
+                    <span>プランをアップグレード</span>
+                  </button>
+                  {profile?.plan === "premium" && (
+                    <button onClick={() => { setShowShareSettings(true); setShowUserMenu(false); }} disabled={!isOnline}
+                      title={!isOnline ? "共有ページ設定はオンライン復帰後に利用できます" : undefined} className="user-menu-item">
+                      <span className="user-menu-item-icon"><Icon name="link" size={17} /></span>
+                      <span>共有ページを設定</span>
+                    </button>
+                  )}
+
+                  <div className="user-menu-label">通知</div>
+                  <button onClick={() => { setShowNotificationSettings(true); setShowUserMenu(false); }}
+                    className="user-menu-item">
+                    <span className="user-menu-item-icon"><Icon name="bell" size={17} /></span>
+                    <span>通知設定</span>
+                  </button>
+
+                  <div className="user-menu-label">データ</div>
+                  <button onClick={() => { setShowTagManager(true); setShowUserMenu(false); }} disabled={!isOnline}
+                    title={!isOnline ? "タグ管理はオンライン復帰後に利用できます" : undefined} className="user-menu-item">
+                    <span className="user-menu-item-icon"><Icon name="tag" size={17} /></span>
+                    <span>タグを管理</span>
+                  </button>
+                  <button onClick={() => window.location.href = "/tools"} className="user-menu-item">
+                    <span className="user-menu-item-icon"><Icon name="calendar" size={17} /></span>
+                    <span>無料ツール</span>
+                  </button>
+
+                  <div className="user-menu-label">アカウント</div>
+                  <button onClick={() => { setShowAccountSettings(true); setShowUserMenu(false); }} disabled={!isOnline}
+                    title={!isOnline ? "アカウント設定はオンライン復帰後に利用できます" : undefined} className="user-menu-item">
+                    <span className="user-menu-item-icon"><Icon name="user" size={17} /></span>
+                    <span>アカウント設定</span>
+                  </button>
+                  {profile?.is_admin && (
+                    <button onClick={() => window.location.href = "/admin"} disabled={!isOnline} className="user-menu-item accent">
+                      <span className="user-menu-item-icon"><Icon name="users" size={17} /></span>
+                      <span>管理者ページ</span>
+                    </button>
+                  )}
+                  <button onClick={requestLogout} disabled={!isOnline}
+                    title={!isOnline ? "ログアウトはオンライン復帰後に利用できます" : undefined} className="user-menu-item danger" style={{ fontWeight: 600 }}>
+                    <span className="user-menu-item-icon"><Icon name="logout" size={17} /></span>
+                    <span>ログアウト</span>
+                  </button>
                 </div>
-                <button onClick={() => window.location.href = "/pricing"} disabled={!isOnline}
-                  title={!isOnline ? "プラン変更はオンライン復帰後に利用できます" : undefined} className="user-menu-item accent">
-                  <span className="user-menu-item-icon"><Icon name="creditCard" size={17} /></span>
-                  <span>プランをアップグレード</span>
-                </button>
-                {profile?.plan === "premium" && (
-                  <button onClick={() => { setShowShareSettings(true); setShowUserMenu(false); }} disabled={!isOnline}
-                    title={!isOnline ? "共有ページ設定はオンライン復帰後に利用できます" : undefined} className="user-menu-item">
-                    <span className="user-menu-item-icon"><Icon name="link" size={17} /></span>
-                    <span>共有ページを設定</span>
-                  </button>
-                )}
-                <PushNotificationToggle enabled={isOnline} />
-                <button onClick={() => { setShowTagManager(true); setShowUserMenu(false); }} disabled={!isOnline}
-                  title={!isOnline ? "タグ管理はオンライン復帰後に利用できます" : undefined} className="user-menu-item">
-                  <span className="user-menu-item-icon"><Icon name="tag" size={17} /></span>
-                  <span>タグを管理</span>
-                </button>
-                <button onClick={() => { setNameInput(profile?.display_name ?? ""); setShowNameEdit(true); setShowUserMenu(false); }}
-                  disabled={!isOnline} title={!isOnline ? "名前の変更はオンライン復帰後に利用できます" : undefined} className="user-menu-item">
-                  <span className="user-menu-item-icon"><Icon name="user" size={17} /></span>
-                  <span>名前を変更</span>
-                </button>
-                <button onClick={openPasswordModal} disabled={!isOnline}
-                  title={!isOnline ? "パスワード設定はオンライン復帰後に利用できます" : undefined} className="user-menu-item">
-                  <span className="user-menu-item-icon"><Icon name="lock" size={17} /></span>
-                  <span>{hasPassword ? "パスワードを変更" : "パスワードを設定"}</span>
-                </button>
-                {isGoogleLinked ? (
-                  <button onClick={requestUnlinkGoogle} disabled={!isOnline}
-                    title={!isOnline ? "Google連携の解除はオンライン復帰後に利用できます" : undefined} className="user-menu-item">
-                    <span className="user-menu-item-icon"><Icon name="link" size={17} /></span>
-                    <span>Google連携を解除</span>
-                  </button>
-                ) : (
-                  <button onClick={handleLinkGoogle} disabled={!isOnline || linking}
-                    title={!isOnline ? "Google連携はオンライン復帰後に利用できます" : undefined} className="user-menu-item">
-                    <span className="user-menu-item-icon"><Icon name="link" size={17} /></span>
-                    <span>{linking ? "連携中…" : "Googleと連携する"}</span>
-                  </button>
-                )}
-                {profile?.is_admin && (
-                  <button onClick={() => window.location.href = "/admin"} disabled={!isOnline} className="user-menu-item accent">
-                    <span className="user-menu-item-icon"><Icon name="users" size={17} /></span>
-                    <span>管理者ページ</span>
-                  </button>
-                )}
-                {!profile?.is_admin && (
-                  <button onClick={() => { setShowDeleteAccount(true); setShowUserMenu(false); }}
-                    disabled={!isOnline} title={!isOnline ? "アカウント削除はオンライン復帰後に利用できます" : undefined} className="user-menu-item danger">
-                    <span className="user-menu-item-icon"><Icon name="trash" size={17} /></span>
-                    <span>アカウントを削除</span>
-                  </button>
-                )}
-                <button onClick={requestLogout} disabled={!isOnline}
-                  title={!isOnline ? "ログアウトはオンライン復帰後に利用できます" : undefined} className="user-menu-item danger" style={{ fontWeight: 600 }}>
-                  <span className="user-menu-item-icon"><Icon name="logout" size={17} /></span>
-                  <span>ログアウト</span>
-                </button>
-              </div>
+              </>
             )}
           </div>
         </div>
@@ -1323,6 +1341,7 @@ export default function TaskApp() {
                     ["依頼日", fmtDate(detailItem.ordered_at)],
                     ["納期", fmtDate(detailItem.deadline)],
                     ["提出日", fmtDate(detailItem.submission_date)],
+                    ["リマインド", detailItem.remind_before_days == null ? "—" : `納期の${formatDaysBefore(detailItem.remind_before_days)}`],
                     ["金額", fmtPrice(detailItem.price, detailItem.currency)],
                     ["タグ", tagsOf(detailItem).length > 0
                       ? <span className="row" style={{ gap: 4, flexWrap: "wrap" }}>{tagsOf(detailItem).map(t => <span key={t.id} className="tag-pill">{t.name}</span>)}</span>
@@ -1359,6 +1378,20 @@ export default function TaskApp() {
         online={isOnline}
       />
       <ShareSettingsModal open={showShareSettings} onClose={() => setShowShareSettings(false)} online={isOnline} />
+      <AccountSettingsModal
+        open={showAccountSettings}
+        onClose={() => setShowAccountSettings(false)}
+        online={isOnline}
+        hasPassword={hasPassword}
+        isGoogleLinked={isGoogleLinked}
+        linking={linking}
+        isAdmin={!!profile?.is_admin}
+        onEditName={() => { setShowAccountSettings(false); setNameInput(profile?.display_name ?? ""); setShowNameEdit(true); }}
+        onPassword={() => { setShowAccountSettings(false); openPasswordModal(); }}
+        onLinkGoogle={() => { setShowAccountSettings(false); void handleLinkGoogle(); }}
+        onUnlinkGoogle={() => { setShowAccountSettings(false); requestUnlinkGoogle(); }}
+        onDeleteAccount={() => { setShowAccountSettings(false); setShowDeleteAccount(true); }}
+      />
 
       {showCalendarUpgrade && (
         <div className="modal-overlay" onClick={() => setShowCalendarUpgrade(false)}>
@@ -1648,6 +1681,17 @@ export default function TaskApp() {
                 <Field label="SNS/連絡先（X ID等）"><input value={form.contact} onChange={e => setForm({ ...form, contact: e.target.value })} placeholder="例: @your_handle" className="input" /></Field>
                 <DateField label="依頼日" value={form.ordered_at} onChange={v => setForm({ ...form, ordered_at: v })} />
                 <DateField label="納期" value={form.deadline} onChange={v => setForm({ ...form, deadline: v })} />
+                <Field label="リマインド（納期の何日前に通知）">
+                  <select value={form.remindBefore} onChange={e => setForm({ ...form, remindBefore: e.target.value })} className="select">
+                    <option value="">設定しない</option>
+                    {TASK_REMIND_OPTIONS.map(n => <option key={n} value={n}>{formatDaysBefore(n)}</option>)}
+                  </select>
+                  <div className="text-meta" style={{ marginTop: 6, lineHeight: 1.6 }}>
+                    {form.deadline
+                      ? "このタスクだけの追加の通知です。通知をオンにした端末に、通知時刻に届きます。"
+                      : "納期を設定すると有効になります。"}
+                  </div>
+                </Field>
                 <DateField label="提出日" value={form.submission_date} onChange={v => setForm({ ...form, submission_date: v })} />
                 <Field label="金額（円）">
                   <input
@@ -1696,6 +1740,7 @@ export default function TaskApp() {
                         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(80px,1fr))", gap: 8, marginBottom: 10 }}>
                           {pendingImages.map(pi => (
                             <div key={pi.id} style={{ position: "relative", borderRadius: "var(--radius-md)", overflow: "hidden", border: "1px solid var(--border-soft)", background: "var(--surface)" }}>
+                              {/* eslint-disable-next-line @next/next/no-img-element -- 外部ドメインのアバター / blob:URLのプレビューのため next/image を使わない */}
                               <img src={pi.previewUrl} alt={pi.file.name}
                                 style={{ width: "100%", aspectRatio: "1", objectFit: "cover" }} />
                               <div className="tag" style={{ position: "absolute", top: 3, left: 3 }}>
@@ -1772,6 +1817,13 @@ export default function TaskApp() {
 
       <ContactModal open={showContact} onClose={() => setShowContact(false)} />
 
+      <NotificationSettingsModal
+        open={showNotificationSettings}
+        onClose={() => setShowNotificationSettings(false)}
+        userId={user?.id ?? null}
+        online={isOnline}
+      />
+
       <NotificationsModal
         open={showNotifications}
         onClose={() => setShowNotifications(false)}
@@ -1790,7 +1842,9 @@ export default function TaskApp() {
       <footer className="app-footer">
         <div className="footer-links">
           {[
+            { href: "/about", label: "運営者・サービスについて" },
             { href: "/guide", label: "使い方" },
+            { href: "/tools", label: "無料ツール" },
             { href: "/terms", label: "利用規約" },
             { href: "/privacy", label: "プライバシーポリシー" },
             { href: "/tokusho", label: "特定商取引法" },

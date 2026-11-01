@@ -1,7 +1,9 @@
 "use client";
 
 import { Icon } from "@/components/TaskShared";
-import { useState, useEffect } from "react";
+import SiteHeader from "@/components/SiteHeader";
+import { SITE_URL } from "@/lib/site";
+import { useState } from "react";
 
 // モックデータ
 const MOCK_TASKS = [
@@ -10,14 +12,14 @@ const MOCK_TASKS = [
   { title: "バナー制作", assignee: "フリーランス佐藤", status: "依頼済み", deadline: "04/20", price: "¥3,500", urgent: false },
 ];
 
-// 機能紹介・料金プラン・FAQのデータ
+// 機能紹介・料金プラン・FAQのデータ（href は詳しい使い方ガイドへのリンク）
 const FEATURES = [
-  { title: "タスクを一元管理", desc: "件名・依頼先名・納期・金額・メモをまとめて記録。依頼の迷子がなくなります。" },
-  { title: "ステータス管理", desc: "依頼済み・確認中・対応中・完成・キャンセルの5段階で進捗を管理。" },
-  { title: "納期アラート", desc: "納期7日前になると自動でハイライト。締め切りを見逃しません。" },
-  { title: "画像添付", desc: "確認用・作業中・完成画像をアップロードして一括管理。種類ごとに整理できます。" },
-  { title: "並び替え・フィルタ", desc: "依頼日・納期・金額・ステータスで並び替え。フィルタリングも可能。" },
-  { title: "スマホ対応", desc: "PCでもスマホでも快適に使えます。ホーム画面に追加してアプリとして利用可能。" },
+  { title: "タスクを一元管理", desc: "件名・依頼先名・納期・金額・メモをまとめて記録。依頼の迷子がなくなります。", href: "/guide/tasks-and-status" },
+  { title: "ステータス管理", desc: "依頼済み・確認中・対応中・完成・キャンセルの5段階で進捗を管理。", href: "/guide/tasks-and-status" },
+  { title: "納期アラート", desc: "納期7日前になると自動でハイライト。締め切りを見逃しません。", href: "/guide/notifications" },
+  { title: "画像添付", desc: "確認用・作業中・完成画像をアップロードして一括管理。種類ごとに整理できます。", href: "/guide/images" },
+  { title: "並び替え・フィルタ", desc: "依頼日・納期・金額・ステータスで並び替え。フィルタリングも可能。", href: "/guide/tags-and-calendar" },
+  { title: "スマホ対応", desc: "PCでもスマホでも快適に使えます。ホーム画面に追加してアプリとして利用可能。", href: "/guide/pwa-and-offline" },
 ];
 
 // 料金プラン
@@ -27,25 +29,17 @@ const PLANS = [
   { label: "プレミアム", price: "¥800", period: "/月", features: ["タスクの登録・管理", "カレンダー表示", "共有用公開ページ", "画像 無制限", "全ステータス対応", "納期アラート", "優先サポート"], cta: "始める", featured: true },
 ];
 
-// FAQ
-const FAQS = [
-  { q: "無料プランでいつまでも使えますか？", a: "はい、無料プランは期限なく使えます。画像は合計10枚まで利用でき、カレンダー表示は有料プランで利用できます。" },
-  { q: "支払い方法は何が使えますか？", a: "クレジットカード・デビットカードが使えます。決済はStripeで安全に処理され、カード情報は当サービスには保存されません。" },
-  { q: "解約はいつでもできますか？", a: "いつでも解約を予約できます。契約期間の終了日までは現在のプランをご利用いただけ、期間終了後に解約されます。アップグレード時は残り期間に応じた差額を日割り計算して請求します。解約による返金は原則行っておりません。返金が必要な場合はお問い合わせください。" },
-  { q: "スマホでも使えますか？", a: "はい、スマホ・タブレット・PCすべてに対応しています。SafariやChromeからホーム画面に追加するとアプリのように使えます。" },
-  { q: "データは安全ですか？", a: "データはSupabaseに安全に保存され、SSL通信・行レベルセキュリティにより他のユーザーからのアクセスは完全に遮断されています。" },
+// FAQ（link を付けると、回答の下に詳しいガイドへのリンクを表示する）
+const FAQS: { q: string; a: string; link?: { href: string; label: string } }[] = [
+  { q: "無料プランでいつまでも使えますか？", a: "はい、無料プランは期限なく使えます。画像は合計10枚まで利用でき、カレンダー表示は有料プランで利用できます。", link: { href: "/guide/plans-and-billing", label: "プランの違いを詳しく見る" } },
+  { q: "支払い方法は何が使えますか？", a: "クレジットカード・デビットカードが使えます。決済はStripeで安全に処理され、カード情報は当サービスには保存されません。", link: { href: "/guide/plans-and-billing", label: "課金・支払いのガイド" } },
+  { q: "解約はいつでもできますか？", a: "いつでも解約を予約できます。契約期間の終了日までは現在のプランをご利用いただけ、期間終了後に解約されます。アップグレード時は残り期間に応じた差額を日割り計算して請求します。解約による返金は原則行っておりません。返金が必要な場合はお問い合わせください。", link: { href: "/guide/plans-and-billing", label: "解約の流れを詳しく見る" } },
+  { q: "スマホでも使えますか？", a: "はい、スマホ・タブレット・PCすべてに対応しています。SafariやChromeからホーム画面に追加するとアプリのように使えます。", link: { href: "/guide/pwa-and-offline", label: "ホーム画面への追加とオフライン利用" } },
+  { q: "データは安全ですか？", a: "データはSupabaseに安全に保存され、SSL通信・行レベルセキュリティにより他のユーザーからのアクセスは完全に遮断されています。", link: { href: "/guide/account-and-security", label: "アカウントとセキュリティのガイド" } },
 ];
 
 // ランディングページ
 export default function LandingPage() {
-  const [scrolled, setScrolled] = useState(false);
-
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 40);
-    window.addEventListener("scroll", onScroll);
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
-
   return (
     <>
       <script
@@ -54,12 +48,17 @@ export default function LandingPage() {
           __html: JSON.stringify({
             "@context": "https://schema.org",
             "@type": "WebApplication",
+            "@id": `${SITE_URL}/#webapp`,
             name: "ツクリスト",
-            url: "https://tsukurist.com",
+            alternateName: "Tsukurist",
+            url: SITE_URL,
+            mainEntityOfPage: SITE_URL,
             applicationCategory: "BusinessApplication",
             operatingSystem: "Web",
             inLanguage: "ja",
             description: "外注・依頼の納期、金額、確認用画像をまとめて管理できる納期管理Webアプリ",
+            creator: { "@id": `${SITE_URL}/about#operator` },
+            publisher: { "@id": `${SITE_URL}/about#operator` },
             offers: [
               { "@type": "Offer", name: "無料", price: "0", priceCurrency: "JPY" },
               { "@type": "Offer", name: "スタンダード", price: "300", priceCurrency: "JPY" },
@@ -70,22 +69,11 @@ export default function LandingPage() {
       />
       <div style={{ background: "var(--surface-sky)", color: "var(--fg)" }}>
 
-        {/* ナビ */}
-        <nav className="nav-public" style={{
-          background: scrolled ? "color-mix(in srgb, var(--surface-sky) 80%, transparent)" : "transparent",
-          backdropFilter: scrolled ? "saturate(180%) blur(20px)" : "none",
-          WebkitBackdropFilter: scrolled ? "saturate(180%) blur(20px)" : "none",
-          borderBottom: scrolled ? "1px solid var(--border-soft)" : "1px solid transparent",
-        }}>
-          <span style={{ fontWeight: 600, fontSize: 16, letterSpacing: "-0.01em" }}>ツクリスト</span>
-          <div className="row" style={{ gap: 16 }}>
-            <a href="/login" style={{ color: "var(--fg-2)", fontSize: 13, textDecoration: "none", fontWeight: 600 }}>ログイン</a>
-            <a href="/login" className="btn btn-primary btn-sm" style={{ textDecoration: "none" }}>無料で始める</a>
-          </div>
-        </nav>
+        {/* 共通ヘッダー（他の公開ページと同じ。LPは本文が広いので wide） */}
+        <SiteHeader wide />
 
-        {/* ヒーロー */}
-        <section className="hero">
+        {/* ヒーロー（ヘッダーが固定ではなくなったので、上の余白を詰める） */}
+        <section className="hero" style={{ paddingTop: 56, minHeight: "calc(100vh - 52px)" }}>
           <div className="hero-eyebrow">納期・タスク管理ツール</div>
           <h1 className="hero-title">納期を、<br />もう迷子にしない。</h1>
           <p className="hero-subtitle">
@@ -101,7 +89,7 @@ export default function LandingPage() {
 
           {/* モックUI */}
           <div className="card" style={{
-            marginTop: 72, width: "100%", maxWidth: 640, padding: 20, textAlign: "left",
+            marginTop: 56, width: "100%", maxWidth: 640, padding: 16, textAlign: "left",
           }}>
             <div className="row" style={{ justifyContent: "space-between", marginBottom: 16, padding: "10px 14px", borderBottom: "1px solid var(--border-soft)" }}>
               <span style={{ fontWeight: 600, fontSize: 13 }}>ツクリスト</span>
@@ -113,19 +101,19 @@ export default function LandingPage() {
             </div>
             {MOCK_TASKS.map((t, i) => (
               <div key={i} className="row" style={{
-                justifyContent: "space-between", padding: "12px 14px", marginBottom: 6,
+                justifyContent: "space-between", gap: 8, padding: "12px 14px", marginBottom: 6,
                 borderRadius: "var(--radius-md)",
                 background: t.urgent ? "var(--danger-soft)" : "var(--surface)",
               }}>
-                <div>
-                  <div className="row" style={{ gap: 8, marginBottom: 4 }}>
+                <div style={{ minWidth: 0 }}>
+                  <div className="row" style={{ gap: 8, marginBottom: 4, flexWrap: "wrap" }}>
                     <span style={{ fontWeight: 600, fontSize: 13 }}>{t.title}</span>
                     <span className="badge badge-neutral">{t.status}</span>
                     {t.urgent && <span style={{ fontSize: 10, color: "var(--danger)", fontWeight: 600 }}>あと3日</span>}
                   </div>
                   <div style={{ fontSize: 11, color: "var(--muted)" }}>{t.assignee} ・ 納期 {t.deadline}</div>
                 </div>
-                <div style={{ fontWeight: 600, fontSize: 14 }}>{t.price}</div>
+                <div style={{ fontWeight: 600, fontSize: 14, flexShrink: 0 }}>{t.price}</div>
               </div>
             ))}
           </div>
@@ -143,9 +131,18 @@ export default function LandingPage() {
                 <div key={i} className="feature-cell">
                   <h3>{f.title}</h3>
                   <p>{f.desc}</p>
+                  <a href={f.href} style={{
+                    display: "inline-block", marginTop: 12, color: "var(--accent)",
+                    fontSize: 13, fontWeight: 600, textDecoration: "none",
+                  }}>
+                    詳しく見る
+                  </a>
                 </div>
               ))}
             </div>
+            <p style={{ textAlign: "center", marginTop: 24, fontSize: 13 }}>
+              <a href="/guide" style={{ color: "var(--accent)", fontWeight: 600, textDecoration: "none" }}>使い方ガイドをすべて見る</a>
+            </p>
           </div>
         </section>
 
@@ -191,7 +188,7 @@ export default function LandingPage() {
           <div className="container-narrow">
             <h2 className="section-title" style={{ textAlign: "center", marginBottom: 40 }}>よくある質問</h2>
             <div style={{ display: "grid", gap: 10 }}>
-              {FAQS.map((item, i) => <FaqItem key={i} q={item.q} a={item.a} />)}
+              {FAQS.map((item, i) => <FaqItem key={i} q={item.q} a={item.a} link={item.link} />)}
             </div>
           </div>
         </section>
@@ -211,7 +208,9 @@ export default function LandingPage() {
           <div className="footer-links">
             {[
               { href: "/", label: "サービス紹介" },
+              { href: "/about", label: "運営者・サービスについて" },
               { href: "/guide", label: "使い方" },
+              { href: "/tools", label: "無料ツール" },
               { href: "/terms", label: "利用規約" },
               { href: "/privacy", label: "プライバシー" },
               { href: "/tokusho", label: "特定商取引法" },
@@ -230,7 +229,7 @@ function cxBtn(featured: boolean) {
 }
 
 // FAQアイテムコンポーネント
-function FaqItem({ q, a }: { q: string; a: string }) {
+function FaqItem({ q, a, link }: { q: string; a: string; link?: { href: string; label: string } }) {
   const [open, setOpen] = useState(false);
   return (
     <div className="faq-item">
@@ -238,8 +237,16 @@ function FaqItem({ q, a }: { q: string; a: string }) {
         <span>{q}</span>
         <span style={{ color: "var(--accent)", display: "inline-flex", transform: open ? "rotate(45deg)" : "none", transition: "transform 0.2s" }}><Icon name="plus" size={18} /></span>
       </button>
-      {open && <div className="faq-answer">{a}</div>}
+      {open && (
+        <div className="faq-answer">
+          {a}
+          {link && (
+            <div style={{ marginTop: 10 }}>
+              <a href={link.href} style={{ color: "var(--accent)", fontWeight: 600, textDecoration: "none" }}>{link.label}</a>
+            </div>
+          )}
+        </div>
+      )}
     </div>
-
   );
 }

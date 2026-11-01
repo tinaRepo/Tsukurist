@@ -1,8 +1,0 @@
-{
-  "crons": [
-    {
-      "path": "/api/cron/deadline-notify",
-      "schedule": "0 23 * * *"
-    }
-  ]
-}

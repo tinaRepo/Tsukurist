@@ -1,15 +1,9 @@
-"use client";
+import PublicShell from "@/components/PublicShell";
 
-import BackButton from "@/components/BackButton";
-// ページメタデータ
 export default function TermsPage() {
   return (
-    <div style={{ minHeight: "100vh", background: "var(--surface)" }}>
-      <header className="doc-header">
-        <BackButton />
-        <span className="title">利用規約</span>
-      </header>
-      <main className="container-narrow" style={{ padding: "32px 24px 80px" }}>
+    <PublicShell crumbs={[{ label: "利用規約" }]}>
+        <h1 style={{ fontSize: 24, lineHeight: 1.4, marginBottom: 12 }}>利用規約</h1>
         <p className="text-meta" style={{ marginBottom: 24 }}>最終更新日：2026年10月16日</p>
 
         <Section title="第1条（適用）">
@@ -68,8 +62,7 @@ export default function TermsPage() {
         <Section title="第9条（準拠法・管轄）">
           <p>本規約は日本法を準拠法とし、本サービスに関する紛争は日本の裁判所を専属的合意管轄とします。</p>
         </Section>
-      </main>
-    </div>
+    </PublicShell>
   );
 }
 

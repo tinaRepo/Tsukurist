@@ -2,14 +2,17 @@ import Stripe from "stripe";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { createAdminClient, getUserFromRequest } from "@/lib/server/admin";
+import { getLogger, putContext, withRequestLog } from "@/lib/server/logger";
 
+const log = getLogger("stripe.sync");
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
-export async function POST(request: NextRequest) {
+export const POST = withRequestLog("stripe.sync", async (request: NextRequest) => {
   try {
     const admin = createAdminClient();
     const user = await getUserFromRequest(request, admin);
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    putContext({ userId: user.id });
 
     const { data: profile, error: profileError } = await admin
       .from("user_profiles")
@@ -26,6 +29,7 @@ export async function POST(request: NextRequest) {
       ? subscription.customer
       : subscription.customer.id;
     if (customerId !== profile.stripe_customer_id) {
+      log.error("subscription customer mismatch", { subscriptionId: subscription.id });
       return NextResponse.json({ error: "サブスクリプション情報を確認できません。" }, { status: 409 });
     }
 
@@ -56,11 +60,12 @@ export async function POST(request: NextRequest) {
         subscription_status: "inactive",
       };
     } else {
+      log.warn("subscription status could not be mapped", { status: subscription.status, subscriptionId: subscription.id });
       return NextResponse.json({ error: "プランの更新をStripeで確認できませんでした。" }, { status: 409 });
     }
 
     if (["active", "trialing"].includes(subscription.status) && !plan) {
-      console.error(`Unknown Stripe price ${priceId} on subscription ${subscription.id}`);
+      log.error("unknown Stripe price on subscription", { priceId, subscriptionId: subscription.id });
       return NextResponse.json({ error: "登録されていない料金プランです。" }, { status: 500 });
     }
 
@@ -73,9 +78,11 @@ export async function POST(request: NextRequest) {
       .maybeSingle();
     if (updateError) throw updateError;
     if (!updatedProfile) {
+      log.warn("profile was updated concurrently", { subscriptionId: subscription.id });
       return NextResponse.json({ error: "プラン情報が先に更新されました。画面を再読み込みしてください。" }, { status: 409 });
     }
 
+    log.info("subscription synced", { plan: values.plan, status: values.subscription_status });
     return NextResponse.json({
       plan: values.plan,
       subscription_status: values.subscription_status,
@@ -83,7 +90,7 @@ export async function POST(request: NextRequest) {
       current_period_end: subscription.current_period_end,
     });
   } catch (error) {
-    console.error("Stripe subscription sync error:", error);
+    log.error("Stripe subscription sync error", error);
     return NextResponse.json({ error: "プラン情報を更新できませんでした。" }, { status: 500 });
   }
-}
+});

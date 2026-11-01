@@ -1,5 +1,8 @@
 import { createClient, type SupabaseClient, type User } from "@supabase/supabase-js";
 import { createHash, timingSafeEqual } from "crypto";
+import { getLogger } from "@/lib/server/logger";
+
+const log = getLogger("server.admin");
 
 // service_role の管理者クライアント（サーバー専用。ブラウザに出さないこと）
 export function createAdminClient(): SupabaseClient {
@@ -37,10 +40,11 @@ export async function getAdminFromRequest(request: Request, admin: SupabaseClien
   const { data: assurance, error: assuranceError } =
     await admin.auth.mfa.getAuthenticatorAssuranceLevel(token);
   if (assuranceError) {
-    console.error("admin MFA assurance check failed:", assuranceError);
+    log.error("admin MFA assurance check failed", assuranceError);
     return { ok: false, status: 500, error: "管理者認証を確認できませんでした" };
   }
   if (assurance.currentLevel !== "aal2") {
+    log.warn("admin request rejected: MFA required", { userId: user.id });
     return { ok: false, status: 403, error: "MFA_REQUIRED" };
   }
 
@@ -50,10 +54,13 @@ export async function getAdminFromRequest(request: Request, admin: SupabaseClien
     .eq("id", user.id)
     .maybeSingle();
   if (profileError) {
-    console.error("admin profile check failed:", profileError);
+    log.error("admin profile check failed", profileError);
     return { ok: false, status: 500, error: "管理者権限を確認できませんでした" };
   }
-  if (!profile?.is_admin) return { ok: false, status: 403, error: "Forbidden" };
+  if (!profile?.is_admin) {
+    log.warn("admin request rejected: not an admin", { userId: user.id });
+    return { ok: false, status: 403, error: "Forbidden" };
+  }
 
   return { ok: true, user };
 }
@@ -66,9 +73,10 @@ export async function checkRateLimit(
     p_key: key, p_limit: limit, p_window_seconds: windowSeconds,
   });
   if (error) {
-    console.error("rate limit check failed:", error);
+    log.error("rate limit check failed", error);
     return "error";
   }
+  if (data !== true) log.warn("rate limit exceeded", { key });
   return data === true ? "ok" : "limited";
 }
 
@@ -76,7 +84,7 @@ export async function checkRateLimit(
 export function isCronAuthorized(request: Request): boolean {
   const secret = process.env.CRON_SECRET;
   if (!secret || secret.length < 16) {
-    console.error("CRON_SECRET is not set or too short");
+    log.error("CRON_SECRET is not set or too short");
     return false;
   }
   const sha = (v: string) => createHash("sha256").update(v).digest();

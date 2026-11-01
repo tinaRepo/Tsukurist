@@ -340,8 +340,10 @@
   width: 100%;
   min-width: 0;
   padding-left: 10px;
-  padding-right: 34px;   /* バツボタンの分だけ右を空ける */
-  font-size: 16px;       /* iOSの自動ズーム防止のため16px未満にしない */
+  padding-right: 34px;
+  /* バツボタンの分だけ右を空ける */
+  font-size: 16px;
+  /* iOSの自動ズーム防止のため16px未満にしない */
 }
 
 .date-range-clear {
@@ -494,6 +496,64 @@
   box-shadow: var(--shadow-lg);
 }
 
+.notification-settings-dialog {
+  width: 100%;
+  max-width: 440px;
+  max-height: min(80vh, 560px);
+  max-height: min(80dvh, 560px);
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+}
+
+.notification-settings-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 24px 16px;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--divider);
+}
+
+.notification-settings-body {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding: 8px 8px 20px;
+}
+
+.notification-settings-dialog .user-menu-item {
+  white-space: normal;
+}
+
+.notification-settings-dialog .user-menu-item > span:last-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.notification-settings-section-title {
+  padding: 12px 16px 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fg);
+}
+
+.notification-settings-help {
+  padding: 0 16px 12px;
+  color: var(--meta);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.notification-settings-deadline {
+  border-top: 1px solid var(--divider);
+}
+
 .demo-share-preview {
   max-width: 640px;
   max-height: calc(100dvh - 32px);
@@ -528,15 +588,15 @@
   color: white;
   font-size: 13px;
   font-weight: 600;
-  background: linear-gradient(145deg, #d7a6a3, #735f8d);
+  background: var(--surface-inverse);
 }
 
 .demo-share-art-2 {
-  background: linear-gradient(145deg, #8fc4bd, #355b73);
+  background: var(--accent-fill);
 }
 
 .demo-share-art-3 {
-  background: linear-gradient(145deg, #e8bd77, #b46f63);
+  background: var(--neutral);
 }
 
 .share-page-content {
@@ -651,12 +711,27 @@
 }
 
 @media (max-width: 600px) {
+  .notification-settings-overlay {
+    align-items: center;
+    padding: 16px;
+  }
+
+  .notification-settings-dialog {
+    max-height: min(80vh, 560px);
+    max-height: min(80dvh, 560px);
+    border-radius: var(--radius-lg);
+  }
+
+  .notification-settings-header {
+    padding: 18px 18px 14px;
+  }
+
   .app-header {
     padding: 12px 16px;
     align-items: flex-start;
   }
 
-  .app-header > .row {
+  .app-header>.row {
     width: 100%;
     min-width: 0;
     justify-content: space-between;
@@ -667,16 +742,16 @@
     justify-content: flex-start !important;
   }
 
-  .demo-header-actions > .row:first-child {
+  .demo-header-actions>.row:first-child {
     flex: 1 1 auto;
     margin-right: auto;
   }
 
-  .demo-header-actions > div:last-child {
+  .demo-header-actions>div:last-child {
     margin-left: auto;
   }
 
-  .app-header > .row > .row {
+  .app-header>.row>.row {
     gap: 8px !important;
   }
 
@@ -737,9 +812,76 @@
   border: 1px solid var(--border-soft);
   box-shadow: var(--shadow-lg);
   /* 浮遊メニューのみ影を許容 */
-  min-width: 220px;
-  overflow: hidden;
+  min-width: 240px;
+  /* 項目が増えても画面内に収め、メニュー内だけをスクロールさせる */
+  max-height: calc(100vh - 96px);
+  max-height: calc(100dvh - 96px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   z-index: 99;
+}
+
+/* メール・プラン表示はスクロールしても上に残す */
+.user-menu-head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 12px 16px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--divider);
+}
+
+/* グループ見出し */
+.user-menu-label {
+  padding: 12px 16px 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--meta);
+  letter-spacing: 0.04em;
+  background: var(--surface);
+  border-bottom: 1px solid var(--divider);
+}
+
+/* メニュー外タップで閉じる＋背景スクロール防止用 */
+.user-menu-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 98;
+  background: transparent;
+  touch-action: none;
+}
+
+/* アカウント設定モーダルなどの項目リスト */
+.settings-list {
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+@media (max-width: 600px) {
+  .user-menu-backdrop {
+    background: rgba(0, 0, 0, 0.4);
+  }
+
+  /* ユーザーボタンの下に表示し、内容に合わせた幅で内側だけをスクロールさせる */
+  .user-menu {
+    position: absolute;
+    left: auto;
+    right: 0;
+    top: calc(100% + 8px);
+    bottom: auto;
+    width: max-content;
+    max-width: min(320px, calc(100vw - 32px));
+    max-height: calc(100vh - 96px);
+    max-height: calc(100dvh - 96px);
+    transform: none;
+    border-radius: var(--radius-lg);
+  }
+
+  .user-menu-item {
+    min-height: 48px;
+  }
 }
 
 .user-menu-item {

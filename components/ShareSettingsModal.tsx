@@ -420,7 +420,7 @@ export default function ShareSettingsModal({ open, onClose, online = true }: Pro
                     </p>
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))", gap: 10, marginTop: 10 }}>
                       {Array.from(new Map([...selectedImages, ...images].map(image => [image.id, image])).values()).map(image => (
-                        <div key={image.id} style={{ border: galleryImageIds.includes(image.id) ? "1px solid var(--primary)" : "1px solid var(--border-soft)", borderRadius: "var(--radius-md)", padding: 8, background: galleryImageIds.includes(image.id) ? "var(--primary-soft)" : "var(--surface)" }}>
+                        <div key={image.id} style={{ border: galleryImageIds.includes(image.id) ? "1px solid var(--accent)" : "1px solid var(--border-soft)", borderRadius: "var(--radius-md)", padding: 8, background: galleryImageIds.includes(image.id) ? "var(--accent-soft)" : "var(--surface)" }}>
                           <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 13 }}>
                             <input type="checkbox" checked={galleryImageIds.includes(image.id)} onChange={() => toggleGalleryImage(image.id)} />
                             実績に掲載

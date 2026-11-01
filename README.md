@@ -26,6 +26,7 @@
     - [Stripe（サブスクリプション）](#stripeサブスクリプション)
     - [Web Push（プッシュ通知）](#web-pushプッシュ通知)
     - [Cron Jobの認証（CRON\_SECRET）](#cron-jobの認証cron_secret)
+    - [ログの保存（app\_logs）](#ログの保存app_logs)
   - [5. 管理者設定](#5-管理者設定)
   - [6. 機能一覧](#6-機能一覧)
   - [7. プラン制限](#7-プラン制限)
@@ -45,6 +46,7 @@
 ### 1-2. DB・RLS・Storage の構築
 
 DBの変更・反映方法は [docs/database-operations.md](docs/database-operations.md) を参照してください。
+ログ保存用の `app_logs` テーブルも、同じmigrationの手順で作成されます（[ログの保存](#ログの保存app_logs)参照）。
 
 ### 1-3. 認証プロバイダーの設定
 
@@ -65,9 +67,9 @@ DBの変更・反映方法は [docs/database-operations.md](docs/database-operat
 
 **Dashboard → Authentication → URL Configuration** で設定します。
 
-| 項目          | 値                               |
-| ------------- | -------------------------------- |
-| Site URL      | `https://tsukurist.com`          |
+| 項目          | 値                                                                                 |
+| ------------- | ---------------------------------------------------------------------------------- |
+| Site URL      | `https://tsukurist.com`                                                            |
 | Redirect URLs | `https://tsukurist.com/**`、使用するVercel Preview URL、`http://localhost:3000/**` |
 
 Vercel Preview の認証リダイレクトを使う場合は、実際に使うPreview URLもRedirect URLsに追加します。Googleログインを使う場合、Google Cloud Consoleの承認済みリダイレクトURIは `https://<project-ref>.supabase.co/auth/v1/callback` です。詳しくは [Googleログイン設定](docs/google-login.md) を参照してください。
@@ -116,6 +118,7 @@ vercel dev
 ```
 
 `http://localhost:3000` でアプリが起動します。HTML も API も全てローカルで動作します。
+ローカル開発中（`NODE_ENV` が `production` 以外）は、ログのレベルが `DEBUG` になります。ローカルのログを `app_logs` に保存したくない場合は `.env.local` に `LOG_DB_ENABLED=false` を設定してください。
 
 ---
 
@@ -126,28 +129,32 @@ vercel dev
 3. Project → **Settings → Domains** に `tsukurist.com` と `www.tsukurist.com` を登録し、表示されたDNSレコードをCloudflareのDNSに設定します。`www.tsukurist.com` はVercelで `tsukurist.com` にリダイレクトする設定にします。DNSレコードはVercelが表示する値を使い、メール用のMX/TXTレコードは削除・上書きしないでください。
 4. **Environment Variables** に以下を追加してデプロイ（雛形は `.env.example`）
 
-| 環境変数                               | 値                            | 備考                                                                                  |
-| -------------------------------------- | ----------------------------- | ------------------------------------------------------------------------------------- |
-| `NEXT_PUBLIC_SUPABASE_URL`             | Supabase の Project URL       |                                                                                       |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY`        | Supabase の anon key          |                                                                                       |
-| `SUPABASE_SERVICE_ROLE_KEY`            | Supabase の service_role key  | ⚠️ サーバーサイド専用                                                                  |
-| `RESEND_API_KEY`                       | Resend の API キー            |                                                                                       |
-| `SUPPORT_EMAIL`                        | サポート窓口兼管理通知の受信先・送信元 | 本番・Preview とも `support@tsukurist.com` |
-| `NOREPLY_EMAIL`                        | 自動通知メールの送信元 | 本番・Preview とも `noreply@tsukurist.com` |
-| `NEXT_PUBLIC_APP_URL`                  | アプリの公開URL               | Production: `https://tsukurist.com`。Preview: 対象Vercel PreviewのURL（パスなし）。Webhookメール・通知のリンク先に使用 |
-| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`   | Stripe の公開鍵               |                                                                                       |
-| `STRIPE_SECRET_KEY`                    | Stripe の秘密鍵               | ⚠️ サーバーサイド専用                                                                  |
-| `STRIPE_WEBHOOK_SECRET`                | Stripe Webhook のシークレット |                                                                                       |
-| `STRIPE_BILLING_PORTAL_CONFIGURATION_ID` | 上位プラン変更・期間終了時解約対応ポータルの Configuration ID | Stripe Dashboard で作成した設定を指定 |
-| `STRIPE_STANDARD_PRICE_ID`             | スタンダードプランの Price ID | サーバーサイド用                                                                      |
-| `STRIPE_PREMIUM_PRICE_ID`              | プレミアムプランの Price ID   | サーバーサイド用                                                                      |
-| `NEXT_PUBLIC_STRIPE_STANDARD_PRICE_ID` | スタンダードプランの Price ID | フロント用                                                                            |
-| `NEXT_PUBLIC_STRIPE_PREMIUM_PRICE_ID`  | プレミアムプランの Price ID   | フロント用                                                                            |
-| `NEXT_PUBLIC_VAPID_PUBLIC_KEY`         | Web Push の公開鍵             |                                                                                       |
-| `VAPID_PRIVATE_KEY`                    | Web Push の秘密鍵             |                                                                                       |
-| `VAPID_EMAIL`                          | Web Push 送信元メール         | `mailto:support@tsukurist.com`                                                        |
-| `CRON_SECRET`                          | Cron Job 認証用シークレット   | ⚠️ 16文字以上。自分で生成する（[4. 外部サービス設定](#cron-jobの認証cron_secret)参照） |
-| `HEALTHCHECKS_PING_URL`                | 死活監視の ping URL（任意）   | Healthchecks.io 等で作成。Cron 成功のたびに ping し、途切れると通知される             |
+| 環境変数                                 | 値                                                            | 備考                                                                                                                   |
+| ---------------------------------------- | ------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `NEXT_PUBLIC_SUPABASE_URL`               | Supabase の Project URL                                       |                                                                                                                        |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY`          | Supabase の anon key                                          |                                                                                                                        |
+| `SUPABASE_SERVICE_ROLE_KEY`              | Supabase の service_role key                                  | ⚠️ サーバーサイド専用                                                                                                   |
+| `RESEND_API_KEY`                         | Resend の API キー                                            |                                                                                                                        |
+| `SUPPORT_EMAIL`                          | サポート窓口兼管理通知の受信先・送信元                        | 本番・Preview とも `support@tsukurist.com`                                                                             |
+| `NOREPLY_EMAIL`                          | 自動通知メールの送信元                                        | 本番・Preview とも `noreply@tsukurist.com`                                                                             |
+| `NEXT_PUBLIC_APP_URL`                    | アプリの公開URL                                               | Production: `https://tsukurist.com`。Preview: 対象Vercel PreviewのURL（パスなし）。Webhookメール・通知のリンク先に使用 |
+| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`     | Stripe の公開鍵                                               |                                                                                                                        |
+| `STRIPE_SECRET_KEY`                      | Stripe の秘密鍵                                               | ⚠️ サーバーサイド専用                                                                                                   |
+| `STRIPE_WEBHOOK_SECRET`                  | Stripe Webhook のシークレット                                 |                                                                                                                        |
+| `STRIPE_BILLING_PORTAL_CONFIGURATION_ID` | 上位プラン変更・期間終了時解約対応ポータルの Configuration ID | Stripe Dashboard で作成した設定を指定                                                                                  |
+| `STRIPE_STANDARD_PRICE_ID`               | スタンダードプランの Price ID                                 | サーバーサイド用                                                                                                       |
+| `STRIPE_PREMIUM_PRICE_ID`                | プレミアムプランの Price ID                                   | サーバーサイド用                                                                                                       |
+| `NEXT_PUBLIC_STRIPE_STANDARD_PRICE_ID`   | スタンダードプランの Price ID                                 | フロント用                                                                                                             |
+| `NEXT_PUBLIC_STRIPE_PREMIUM_PRICE_ID`    | プレミアムプランの Price ID                                   | フロント用                                                                                                             |
+| `NEXT_PUBLIC_VAPID_PUBLIC_KEY`           | Web Push の公開鍵                                             |                                                                                                                        |
+| `VAPID_PRIVATE_KEY`                      | Web Push の秘密鍵                                             |                                                                                                                        |
+| `VAPID_EMAIL`                            | Web Push 送信元メール                                         | `mailto:support@tsukurist.com`                                                                                         |
+| `CRON_SECRET`                            | Cron Job 認証用シークレット                                   | ⚠️ 16文字以上。自分で生成する（[4. 外部サービス設定](#cron-jobの認証cron_secret)参照）                                  |
+| `HEALTHCHECKS_PING_URL`                  | 死活監視の ping URL（任意）                                   | Healthchecks.io 等で作成。Cron 成功のたびに ping し、途切れると通知される                                              |
+| `LOG_LEVEL`                              | ログの最低レベル（任意）                                      | `TRACE`〜`FATAL`。未設定時は本番 `INFO`。詳細は[ログの保存](#ログの保存app_logs)                                       |
+| `LOG_LEVELS`                             | ロガー名ごとのレベル（任意）                                  | 例: `stripe=WARN,cron.deadline-notify=DEBUG`                                                                           |
+| `LOG_DB_LEVEL`                           | DBに保存する最低レベル（任意）                                | 未設定時は `INFO`。保存量を減らすなら `WARN`                                                                           |
+| `LOG_DB_ENABLED`                         | DBへのログ保存（任意）                                        | `false` で無効化（コンソール出力のみ）                                                                                 |
 
 VercelのEnvironment Variablesは、ProductionとPreviewそれぞれに設定します。`NEXT_PUBLIC_APP_URL` はProductionでは `https://tsukurist.com`、PreviewではVercelのPreview URLにしてください。Stripe CheckoutとCustomer Portalの戻り先はリクエスト元のoriginから生成されます。Previewも `support@tsukurist.com` と `noreply@tsukurist.com` から送信します。問い合わせ・管理通知は本番のサポート受信箱に届くため、Previewでのメール・決済・アカウント削除テストには注意してください。
 
@@ -195,13 +202,13 @@ npx web-push generate-vapid-keys
 
 ### Cron Jobの認証（CRON_SECRET）
 
-納期通知は `vercel.json` の Cron（**毎日 8:00・日本時間**に実行）が `/api/cron/deadline-notify` を呼び出して実行します。
-納期が7日以内の未完了タスクがあるユーザーのうち、プッシュ通知を有効にしている端末へ送信します。
-VercelのCron式はUTC基準で、`0 23 * * *` が毎日8:00（日本時間）に相当します。Healthchecks.ioもCron式 `0 23 * * *`、タイムゾーン `UTC`、Grace Time `15 minutes` に設定してください。
+納期通知は **Cloudflare Workers の Cron Trigger**（**毎時0分**）が、`/api/cron/deadline-notify` を呼び出して実行します。ルート側で、ユーザーが設定した通知時刻（日本時間・既定8時。ユーザーメニューの「通知時刻」で0〜23時から選択）に一致するユーザーにだけ送信します。Workerのコードは `cloudflare/cron-worker/` にあり、**本番(production)用と検証(staging)用の2つのWorker**として別々にデプロイします（Vercelの Production / Preview の環境分離に対応）。セットアップ・切り替え手順・トラブルシューティングは [Cloudflare Cron 運用ガイド](docs/cloudflare-cron.md) を参照してください。
+処理本体はVercel側のルートです。ユーザーごとの「通知する日」（`user_settings.notify_days`。納期の何日前か。既定は当日〜7日前）またはタスク個別のリマインド（`tasks.remind_before_days`）に当たる未完了タスクがあるユーザーのうち、プッシュ通知を有効にしている端末へ送信し、日本時間4時台の実行（1日1回）で、期限切れの記録（通知ログ・Cron実行記録・Stripeイベント記録）と、保持期間を過ぎたアプリログ（`app_logs`）も削除します。
+Cloudflareの Cron 式は `0 * * * *`（毎時0分）です。Healthchecks.ioもCron式 `0 * * * *`、タイムゾーン `UTC`、Grace Time `15 minutes` に設定してください。`/api/health?deep=1` は最終成功が120分以内かを確認します。
 このルートは **`Authorization: Bearer <CRON_SECRET>` ヘッダーが一致しないリクエストを 401 で拒否**します
-（`CRON_SECRET` が未設定・16 文字未満の場合も常に拒否）。
+（`CRON_SECRET` が未設定・16 文字未満の場合も常に拒否）。`vercel.json` には `crons` を設定しません（Vercel Cronは使いません）。
 
-`CRON_SECRET` は外部サービスから発行されるものではなく、**自分でランダム文字列を生成**して Vercel に登録します。
+`CRON_SECRET` は外部サービスから発行されるものではなく、**自分でランダム文字列を生成**して、**同じ環境のVercelとCloudflare Workerの両方に同じ値**を登録します。本番と検証では**別の値**にしてください。
 
 ```bash
 # 1. 生成（どちらか）
@@ -209,8 +216,10 @@ openssl rand -hex 32
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ```
 
-2. **Vercel Dashboard → Project → Settings → Environment Variables** に `CRON_SECRET` を追加（Production）
-3. **Redeploy** する（Vercel Cron は `CRON_SECRET` が設定されていれば、上記ヘッダーを自動で付けて呼び出す）
+2. **Vercel Dashboard → Project → Settings → Environment Variables** に `CRON_SECRET` を追加（Production と Preview それぞれ別の値）して **Redeploy** する
+3. Cloudflare Worker に、同じ環境の値を登録する：
+   `cd cloudflare/cron-worker && npx wrangler secret put CRON_SECRET --env production`（Vercel Production の値）
+   `npx wrangler secret put CRON_SECRET --env staging`（Vercel Preview の値）
 4. ローカルで試す場合は `.env.local` に同じ値を書く（`vercel env pull .env.local` でも取得可）
 
 動作確認:
@@ -221,14 +230,39 @@ curl -i https://tsukurist.com/api/cron/deadline-notify
 ```
 
 > ⚠️ 正しいヘッダー付きで呼ぶと**実際に購読中ユーザーへ通知が送信されます**。
-> 手動実行は Vercel Dashboard → Project → Settings → Cron Jobs の「Run」ボタンで行うか、検証環境で行ってください。
+> 手動実行は検証環境で行ってください。本番で試すと、その日の通知枠（`notification_log`）を消費します。
 >
-> ⚠️ シークレットを `vercel.json` の URL（`?secret=...`）に書かないこと。リポジトリ・ログ・履歴に残ります。
-> 過去にコミットしたシークレットは**必ず再発行（ローテーション）**してください。
+> ⚠️ シークレットを `wrangler.toml`・`vercel.json` の URL（`?secret=...`）に書かないこと。リポジトリ・ログ・履歴に残ります。
+> 過去にコミットしたシークレットは**必ず再発行（ローテーション）**し、VercelとCloudflareの両方を更新してください。
 >
-> Cron は **Production デプロイ（main ブランチ）でのみ**実行されます。
->
-> HobbyプランのCron実行回数制限に合わせ、毎日1回のスケジュールにしています。なお、Hobbyは非商用利用向けのため、課金・広告のある本サービスで利用するプランはVercelの最新の利用条件を確認してください。
+> 本番Workerは本番URL、検証Workerは検証環境の安定したURL（`wrangler.toml` の `[env.staging.vars]` の `TARGET_URL`）をそれぞれ呼び出します。デプロイは `npm run deploy:production` / `npm run deploy:staging` を使い、環境を指定しない `wrangler deploy` は使わないでください。
+
+### ログの保存（app_logs）
+
+Vercelのランタイムログは保持期間が短いため、サーバー側のログは `lib/server/logger.ts`（log4j2風のロガー）で出力し、Supabaseの `app_logs` テーブルに保存します（Vercelのログにも従来どおり出力されます）。
+
+- レベル: `TRACE` / `DEBUG` / `INFO` / `WARN` / `ERROR` / `FATAL`
+- 出力先: コンソール（Vercelログ）と `app_logs`（`LOG_DB_LEVEL` 以上のみ。既定は `INFO` 以上）
+- 各リクエストに `request_id`（Vercelの `x-vercel-id`）とユーザーID等が自動で付き、1リクエストの流れを追えます
+- パスワード・トークン等のキーは自動でマスクされます。個人情報（お問い合わせ本文など）は記録しません
+- 保持期間: `INFO` 以下は14日、`WARN` 以上は90日。毎日のCron（Cloudflare Worker経由）が古いログを削除します
+- `app_logs` は `service_role` 専用で、クライアントからは読めません。調べるときはSupabaseの SQL Editor を使います
+
+セットアップ:
+
+1. `supabase/migrations/20261024000000_V2.0.0_app_logs.sql` を検証環境→本番の順で適用する（[DB運用ガイド](docs/database-operations.md)）
+2. 必要に応じて `LOG_LEVEL` などの環境変数を設定して Redeploy する（未設定でも動作します）
+
+```sql
+-- 直近のエラー（例）
+select logged_at, logger, message, context
+from public.app_logs
+where level_value >= 50
+order by logged_at desc
+limit 50;
+```
+
+使い方・環境変数・調査用SQL・注意事項の詳細は [ログ運用ガイド](docs/logging-guide.md) を参照してください。
 
 ---
 
@@ -266,6 +300,7 @@ where id = 'ここに UUID を貼る';
 - ✅ 開閉式の詳細検索パネル（既定は折りたたみ）：キーワード検索（件名・依頼先名・連絡先・メモ）、
   依頼日・納期のFrom-To日付範囲検索、金額の範囲検索
 - ✅ 検索結果の合計金額表示（チェックボックスで切替、既定は非表示）
+- ✅ タスク個別のリマインド（納期の何日前に追加で通知するか。0〜30日前。全体の「通知する日」とは別に届く）
 
 **画像**
 - ✅ タスク登録時に画像をまとめてアップロード（新規登録フォームから追加可能）
@@ -279,7 +314,7 @@ where id = 'ここに UUID を貼る';
 - ✅ メール / パスワード・Google ログイン
 - ✅ パスワードリセット（メール送信）
 - ✅ 表示名の設定
-- ✅ アカウントの即時削除（本人がユーザーメニューから実行。メールアドレス＋パスワード（Googleのみの場合は直近ログイン）で本人確認。Stripeの即時解約・画像削除を含む）
+- ✅ アカウントの即時削除（本人がユーザーメニュー →「アカウント設定」から実行。メールアドレス＋パスワード（Googleのみの場合は直近ログイン）で本人確認。Stripeの即時解約・画像削除を含む）
 - ✅ ユーザーごとにデータが完全分離（RLS）
 - ✅ パスワードの設定・変更（ログイン後の画面から。Google登録ユーザーは初回設定可）
 - ✅ 直近のログイン方法の表示（Googleログイン時にアバターへバッジ表示）
@@ -289,7 +324,7 @@ where id = 'ここに UUID を貼る';
 - ✅ 最終ログイン日時の記録
 
 **通知**
-- ✅ 毎朝8時（日本時間）のプッシュ通知（納期 7 日以内。同じ日の重複送信防止。Cron は `CRON_SECRET` のBearer認証で保護。複数端末で購読可能）
+- ✅ プッシュ通知（既定は毎朝8時・日本時間。ユーザーメニューの「通知時刻」で0〜23時に変更可。「通知する日」で納期の何日前に通知するかを選択（当日・1〜7日前・14日前。既定は当日〜7日前）。同じ日の重複送信防止。Cron は `CRON_SECRET` のBearer認証で保護。複数端末で購読可能）
 - ✅ 管理者がお知らせを新規作成した時、配信対象ユーザーへプッシュ通知
 - ✅ 管理者が新しいバージョン情報を登録した時、購読中の全ユーザーへプッシュ通知
 - ✅ お知らせ・リリースノート（未読バッジ通知・モーダル表示。取得・未読判定は`hooks/useNotifications.ts`に一本化）
@@ -304,7 +339,9 @@ where id = 'ここに UUID を貼る';
 
 **運用・監視**
 - ✅ `/api/health`（死活監視。`?deep=1` + Bearer でCronの最終成功時刻まで確認）
+- ✅ 納期通知CronをCloudflare Workers（Cron Trigger）から起動（Bearer認証・リトライ付き。本番/検証で別Worker・別secret。`cloudflare/cron-worker/`）
 - ✅ Cronの実行記録（`job_runs`）と、異常時の管理者メール・Healthchecks.io通知（任意）
+- ✅ アプリログの永続化（log4j2風ロガー `lib/server/logger.ts`。コンソール + Supabase `app_logs`。リクエストID・ユーザーID付き、機密キーの自動マスク、保持期間を過ぎたログはCronで自動削除）
 - ✅ CI（型チェック・lint・ビルド）
 
 **管理者**
@@ -320,12 +357,16 @@ where id = 'ここに UUID を貼る';
 - ✅ タイトル・ボタン固定 / コンテンツスクロールのモーダル構造
 - ✅ モーダル表示時の背景スクロールロック（iOS Safari 対応）
 - ✅ ユーザーメニューのテキスト折り返し防止
+- ✅ ユーザーメニューのスクロール制御（メニュー内だけがスクロールし、表示中は背景をロック。スマホは下からのシート型。項目は「プラン / 通知 / データ / アカウント」にグループ化。Escキー・外側タップで閉じる）
+- ✅ アカウント設定モーダル（`components/AccountSettingsModal.tsx`。名前変更・パスワード設定/変更・Google連携/解除・アカウント削除を集約。実処理は `TaskApp.tsx` の既存ハンドラ・モーダルを呼ぶ）
 
 **その他**
 - ✅ 共有用公開ページ（公開項目を選択。SNSリンク最大3件、実績画像最大20枚・各説明文最大120文字。タスク名や依頼詳細は公開しない）
 - ✅ デモモード（ログイン不要・メモリのみ・お知らせ・お問い合わせボタン付き。検索UX・お知らせ閲覧はTaskAppと共通コンポーネント、お知らせは未読管理なしの読み取り専用）
 - ✅ PWA 対応（ホーム画面追加。Androidではインストール操作、iOSではSafariの共有メニューから追加する方法を案内するバナーを表示。表示履歴はAPI管理のHttpOnly Cookieに保存）
 - ✅ LP・利用規約・プライバシーポリシー・特定商取引法ページ
+- ✅ 使い方ガイド（`/guide` + `/guide/[slug]` の9ページ。実画面の部品を使った図・折りたたみ・目次・「次に読むなら」・ページ途中のデモ誘導。本文は `lib/guide-pages.tsx` で一元管理。スクリーンショット/GIFは `<Shot />` で追加）
+- ✅ 無料ツール（`/tools`。納期逆算カレンダー・外注費の見積もり計算・依頼書テンプレート作成。ログイン不要で、入力内容はブラウザ内でのみ処理）
 
 ---
 
@@ -389,6 +430,12 @@ where id = 'ここに UUID を貼る';
   1行に収めたい場合は、重要度の低い項目を削るか、`flex: "1 1 0%"` +
   `minWidth: 0` + `text-overflow: ellipsis`で省略表示にすること
   （実装例: `components/TaskShared.tsx`の`TaskListCard`）。
+- **サーバー側のログは `console.*` ではなくロガーで出す**：APIルート・`lib/server/` では
+  `lib/server/logger.ts` の `getLogger()` を使い、APIルートは `withRequestLog()` で包むこと
+  （リクエストID・所要時間・未捕捉例外の記録と、サーバーレス終了前のログ書き込み完了待ちを自動で行う）。
+  ページ描画（Server Component）では出力後に `await flushLogs()` を呼ぶ。パスワード・トークン・
+  個人情報（お問い合わせ本文・メールアドレスなど）はログに含めないこと。Edgeランタイム
+  （`middleware.ts`）では使えない。詳細は [ログ運用ガイド](docs/logging-guide.md)。
 
 ---
 
@@ -396,6 +443,9 @@ where id = 'ここに UUID を貼る';
 
 Google Search Console・Google AdSenseの設定は、[docs/seo-ads-guide.md](docs/seo-ads-guide.md) を参照してください。
 トップページ `/` は未ログイン時にサービス紹介、ログイン中はアプリを表示します。公開対象URL・`noindex`・サイトマップ・広告対象を変更する場合は、SEO・広告ガイドに沿って一緒に確認してください。
+
+- 広告を表示するのは `/`（未ログイン時）・`/guide`・`/guide/*`・`/tools`・`/tools/*` だけです（`components/AdSenseLoader.tsx`）。`/terms` `/privacy` `/tokusho` や、ログイン後の画面・デモには表示しません。
+- ガイド・無料ツールは `app/sitemap.ts` が自動でサイトマップに追加します。ページの追加手順、スクリーンショット・GIF用 `<Shot />` の使い方は [使い方ガイド・無料ツールの運用ガイド](docs/content-guide.md) を参照してください。
 
 ---
 
@@ -413,14 +463,19 @@ Google Search Console・Google AdSenseの設定は、[docs/seo-ads-guide.md](doc
 - アイコンは `components/TaskShared.tsx` の `<Icon name="..." />`（自前SVG）。
   新しいアイコンは `ICON_PATHS` に追加し、絵文字・記号文字（✓ ← › ▾ ×など）は使わない。
   ブランドロゴ（Google の G）は線アイコンにせず、`GoogleLogo`（`TaskShared.tsx`・公式SVG）を使う。
+- ユーザーメニューなど縦に長くなる浮遊面は、`max-height` + `overflow-y: auto` + `overscroll-behavior: contain` で内部スクロールにし、表示中は背景スクロールをロックする。
+  項目を追加するときは `.user-menu-label` のグループに入れる。アカウント系の操作はユーザーメニューに直接足さず、`AccountSettingsModal` に追加する。
 
 ---
 
 ## 開発者向け資料
 
 - [開発・運用ガイド](docs/development-guide.md)：構成、実装ルール、検証・リリース手順
-- [DB運用ガイド](docs/database-operations.md)：マイグレーション、RLS、権限付与
+- [DB運用ガイド](docs/database-operations.md)：マイグレーション、RLS、権限付与、`app_logs`
+- [ログ運用ガイド](docs/logging-guide.md)：ロガーの使い方、環境変数、保持期間、調査用SQL
+- [Cloudflare Cron 運用ガイド](docs/cloudflare-cron.md)：納期通知Cronの構成、デプロイ、切り替え手順、トラブルシューティング
 - [Googleログイン設定](docs/google-login.md)：OAuth・リダイレクトURL設定
 - [Stripe運用ガイド](docs/stripe-guide.md)：商品・Webhook・Customer Portal・テスト運用
 - [独自ドメイン設定・移行ガイド](docs/domain-migration.md)：本番ドメイン、Vercel Preview、メール設定
 - [SEO・広告ガイド](docs/seo-ads-guide.md)：Search Console・AdSense運用
+- [使い方ガイド・無料ツールの運用ガイド](docs/content-guide.md)：ガイド・ツールの追加手順、図と `<Shot />`（スクリーンショット・GIF）の使い方、広告対象ページ、公開前チェックリスト

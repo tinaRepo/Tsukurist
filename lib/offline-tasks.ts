@@ -48,6 +48,7 @@ export function applyOfflineChanges(tasks: Task[], changes: OfflineTaskChange[])
       status: values.status,
       submission_date: values.submission_date ?? undefined,
       notes: values.notes ?? undefined,
+      remind_before_days: values.remind_before_days,
       created_at: existing?.created_at ?? change.createdAt,
       updated_at: change.createdAt,
       images: existing?.images ?? [],

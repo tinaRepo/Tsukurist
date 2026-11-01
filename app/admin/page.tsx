@@ -27,8 +27,10 @@ export default function AdminPage() {
   const [maintenanceLoading, setMaintenanceLoading] = useState(true);
   const [maintenanceSaving, setMaintenanceSaving] = useState(false);
 
+  // 初回表示時に1回だけ実行する（checkAdminAndLoad は毎回作り直される関数のため依存配列には入れない）
   useEffect(() => {
     checkAdminAndLoad();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // 管理者かどうかを確認し、ユーザー一覧とメンテナンス設定を読み込む

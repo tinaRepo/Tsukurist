@@ -3,37 +3,54 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { createAdminClient, isCronAuthorized } from "@/lib/server/admin";
 import { alertAdmin, finishJobRun, pingHealthchecks, startJobRun } from "@/lib/server/monitor";
+import { getLogger, withRequestLog } from "@/lib/server/logger";
+import { DEFAULT_NOTIFY_DAYS, NOTIFY_DAYS_MAX, normalizeNotifyDays, shouldNotify } from "@/lib/notify";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
 const JOB = "deadline-notify";
-const DAYS_AHEAD = 7;            // 納期までこの日数以内のタスクを通知
+const log = getLogger("cron.deadline-notify");
+const DAYS_AHEAD = NOTIFY_DAYS_MAX; // 取得する納期の範囲（個別リマインドの最大値に合わせる）。通知するかはユーザー設定で判定
 const CONCURRENCY = 10;
 const TIME_BUDGET_MS = 50_000;   // maxDuration(60秒)より手前で打ち切る
 const PAGE = 1000;
+const DEFAULT_NOTIFY_HOUR = 8;   // user_settings が無い（未設定）ユーザーの通知時刻（JST）
+const CLEANUP_HOUR_JST = 4;      // 古い記録の削除は1日1回、この時刻（JST）の実行で行う
+
+// ログの保持期間（日）。INFO以下 / WARN以上。変更時は docs/logging-guide.md も更新すること
+const LOG_RETENTION_LOW_DAYS = 14;
+const LOG_RETENTION_HIGH_DAYS = 90;
 
 type Sub = { user_id: string; endpoint: string; subscription: any };
-type TaskRow = { user_id: string; title: string; deadline: string };
+type TaskRow = { user_id: string; title: string; deadline: string; remind_before_days: number | null };
+type MatchedTask = TaskRow & { left: number };
 
-// 毎日JST 8時に実行され、対象タスクがある通知購読ユーザーの全端末へWeb Pushを送る。
-//   Authorization: Bearer <CRON_SECRET> 必須。詳細はレスポンスに含めない（ログ・job_runsのみ）
-export async function GET(request: NextRequest) {
-  if (!isCronAuthorized(request)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+// 毎時0分に実行され、「通知時刻（user_settings.notify_hour・JST）が現在のJST時」のユーザーのうち、
+// 「通知する日（notify_days）」またはタスク個別リマインド（remind_before_days）に当たるタスクがある通知購読ユーザーの全端末へWeb Pushを送る。
+//   起動元は Cloudflare Workers の Cron Trigger（cloudflare/cron-worker/。docs/cloudflare-cron.md）。vercel.json には crons を置かない。
+//   Authorization: Bearer <CRON_SECRET> 必須。詳細はレスポンスに含めない（app_logs・job_runsに記録）
+export const GET = withRequestLog("cron.deadline-notify", async (request: NextRequest) => {
+  if (!isCronAuthorized(request)) {
+    log.warn("unauthorized cron request");
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
   const admin = createAdminClient();
   const runId = await startJobRun(admin, JOB);
   const started = Date.now();
+  log.info("job started", { runId });
 
   // JSTの現在日時
   const jst = new Date(Date.now() + 9 * 3600_000);
   const today = jst.toISOString().slice(0, 10);
+  const jstHour = jst.getUTCHours();
   const limitDate = new Date(Date.UTC(jst.getUTCFullYear(), jst.getUTCMonth(), jst.getUTCDate() + DAYS_AHEAD))
     .toISOString().slice(0, 10);
 
   try {
-    await cleanup(admin);
+    if (jstHour === CLEANUP_HOUR_JST) await cleanup(admin);
 
     webpush.setVapidDetails(
       process.env.VAPID_EMAIL!, process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!, process.env.VAPID_PRIVATE_KEY!
@@ -45,23 +62,35 @@ export async function GET(request: NextRequest) {
     const subsByUser = new Map<string, Sub[]>();
     for (const s of subs) subsByUser.set(s.user_id, [...(subsByUser.get(s.user_id) ?? []), s]);
 
-    // 2) 通知を有効にしている全ユーザーを対象にする
-    const targets = new Set(subsByUser.keys());
+    // 2) 通知時刻が「今のJST時」のユーザーだけを対象にする（user_settings が無いユーザーは既定の8時）
+    const settings = subsByUser.size === 0 ? [] : await fetchAll<{ user_id: string; notify_hour: number; notify_days: number[] }>(range =>
+      admin.from("user_settings").select("user_id, notify_hour, notify_days").order("user_id").range(range[0], range[1]));
+    const hourByUser = new Map(settings.map(s => [s.user_id, s.notify_hour]));
+    const daysByUser = new Map(settings.map(s => [s.user_id, normalizeNotifyDays(s.notify_days)]));
+    const targets = new Set(
+      Array.from(subsByUser.keys()).filter(uid => (hourByUser.get(uid) ?? DEFAULT_NOTIFY_HOUR) === jstHour)
+    );
 
     // 3) 納期が近い未完了タスク（部分インデックス idx_tasks_active_deadline を利用）
     const tasks = targets.size === 0 ? [] : await fetchAll<TaskRow>(range => admin.from("tasks")
-      .select("user_id, title, deadline")
+      .select("user_id, title, deadline, remind_before_days")
       .gte("deadline", today).lte("deadline", limitDate)
       .not("status", "in", "(done,cancelled)")
       .order("id").range(range[0], range[1]));
 
-    const byUser = new Map<string, TaskRow[]>();
+    // 全体の「通知する日」またはタスク個別リマインドに当たるものだけを残す
+    const todayMs = Date.parse(today);
+    const byUser = new Map<string, MatchedTask[]>();
     for (const t of tasks) {
       if (!targets.has(t.user_id)) continue;
-      byUser.set(t.user_id, [...(byUser.get(t.user_id) ?? []), t]);
+      const left = Math.round((Date.parse(t.deadline) - todayMs) / 86400_000);
+      if (!shouldNotify(left, daysByUser.get(t.user_id) ?? DEFAULT_NOTIFY_DAYS, t.remind_before_days)) continue;
+      const list = byUser.get(t.user_id);
+      if (list) list.push({ ...t, left });
+      else byUser.set(t.user_id, [{ ...t, left }]);
     }
 
-    // 4) 同じ日の重複送信を防ぐ（先に記録できたユーザーだけ送る）
+    // 4) 同じ日の重複送信を防ぐ（先に記録できたユーザーだけ送る）。通知時刻を変えても1日1回まで
     const userIds = Array.from(byUser.keys());
     const claimedIds = new Set<string>();
     for (let i = 0; i < userIds.length; i += 500) {
@@ -72,17 +101,17 @@ export async function GET(request: NextRequest) {
       if (error) throw error;
       (data ?? []).forEach(r => claimedIds.add(r.user_id));
     }
+    log.debug("targets resolved", { jstHour, subscriptions: subs.length, targets: targets.size, usersWithTasks: userIds.length, claimed: claimedIds.size });
 
     // 5) 送信（並列10・時間予算あり）
     const appUrl = process.env.NEXT_PUBLIC_APP_URL!;
     const jobs: { sub: Sub; payload: string }[] = [];
     for (const uid of Array.from(claimedIds)) {
       const list = (byUser.get(uid) ?? []).sort((a, b) => a.deadline.localeCompare(b.deadline));
-      const days = Math.round((Date.parse(list[0].deadline) - Date.parse(today)) / 86400_000);
-      const when = days === 0 ? "本日" : `あと${days}日`;
+      const when = list[0].left === 0 ? "本日" : `あと${list[0].left}日`;
       const payload = JSON.stringify({
         title: "納期が近いタスクがあります",
-        body: `${list.length}件が${DAYS_AHEAD}日以内に納期です（最短: ${list[0].title}・${when}）`,
+        body: `${list.length}件のタスクの納期が近づいています（最短: ${list[0].title}・${when}）`,
         url: appUrl,
       });
       (subsByUser.get(uid) ?? []).forEach(sub => jobs.push({ sub, payload }));
@@ -101,10 +130,11 @@ export async function GET(request: NextRequest) {
           failed++;
           // 失効した購読（404/410）は、その端末の分だけ削除する
           if (e?.statusCode === 404 || e?.statusCode === 410) {
+            log.info("expired push subscription removed", { userId: job.sub.user_id, statusCode: e.statusCode });
             await admin.from("push_subscriptions").delete()
               .eq("user_id", job.sub.user_id).eq("endpoint", job.sub.endpoint);
           } else {
-            console.error(`push failed for ${job.sub.user_id}:`, e?.message);
+            log.warn("push failed", { userId: job.sub.user_id, statusCode: e?.statusCode, message: e?.message });
           }
         }
       }
@@ -114,24 +144,26 @@ export async function GET(request: NextRequest) {
     const total = sent + failed;
     const bad = truncated || (total > 0 && (sent === 0 || failed / total >= 0.5));
     const status = bad ? "partial" : "success";
-    const detail = `targets=${targets.size} users=${claimedIds.size} sent=${sent} failed=${failed}${truncated ? " truncated" : ""}`;
+    const detail = `hour=${jstHour} targets=${targets.size} users=${claimedIds.size} sent=${sent} failed=${failed}${truncated ? " truncated" : ""}`;
     await finishJobRun(admin, runId, { status, sent, failed, detail });
 
     if (bad) {
+      log.error("job finished with problems", { runId, status, detail });
       await alertAdmin(admin, "cron-deadline-notify", "納期通知Cronで送信異常がありました", detail);
       await pingHealthchecks("fail");
     } else {
+      log.info("job finished", { runId, status, detail, durationMs: Date.now() - started });
       await pingHealthchecks("success");
     }
     return NextResponse.json({ ok: true });
   } catch (e: any) {
-    console.error("cron deadline-notify error:", e);
+    log.error("job failed", e);
     await finishJobRun(admin, runId, { status: "error", detail: String(e?.message ?? e) });
     await alertAdmin(admin, "cron-deadline-notify-error", "納期通知Cronが異常終了しました", String(e?.stack ?? e));
     await pingHealthchecks("fail");
     return NextResponse.json({ error: "internal error" }, { status: 500 });
   }
-}
+});
 
 // ページングで全件取得（PostgRESTの max_rows=1000 対策）
 async function fetchAll<T>(
@@ -147,10 +179,18 @@ async function fetchAll<T>(
   return all;
 }
 
-// 古い記録の削除（notification_log 30日 / job_runs 90日 / stripe_events 30日）
+// 古い記録の削除（notification_log 30日 / job_runs 90日 / stripe_events 30日 / app_logs 14日・90日）
+// 毎時実行の中で、JST 4時の実行でのみ呼ぶ（1日1回）
 async function cleanup(admin: ReturnType<typeof createAdminClient>) {
   const ago = (days: number) => new Date(Date.now() - days * 86400_000);
   await admin.from("notification_log").delete().lt("notify_date", ago(30).toISOString().slice(0, 10));
   await admin.from("job_runs").delete().lt("started_at", ago(90).toISOString());
   await admin.from("stripe_events").delete().lt("processed_at", ago(30).toISOString());
+
+  // アプリログ（log4j2のDeleteAction相当）。失敗してもCron本体は続行する
+  const { data: purged, error } = await admin.rpc("purge_app_logs", {
+    p_low_days: LOG_RETENTION_LOW_DAYS, p_high_days: LOG_RETENTION_HIGH_DAYS,
+  });
+  if (error) log.warn("purge_app_logs failed (migration applied?)", error);
+  else log.info("old logs purged", { deleted: purged });
 }

@@ -98,7 +98,8 @@ export function TaskSearchBar<T>({ search, tags }: Props<T>) {
           <button
             onClick={() => setSortDir(sortDir === "asc" ? "desc" : "asc")}
             className="btn btn-secondary btn-sm">
-            {sortDir === "asc" ? "↑ 昇順" : "↓ 降順"}
+            <Icon name={sortDir === "asc" ? "chevronUp" : "chevronDown"} size={14} />
+            {sortDir === "asc" ? "昇順" : "降順"}
           </button>
         </div>
       </div>

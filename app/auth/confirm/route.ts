@@ -1,8 +1,11 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextRequest, NextResponse } from "next/server";
+import { getLogger, withRequestLog } from "@/lib/server/logger";
+
+const log = getLogger("auth.confirm");
 
 // GET: パスワード再設定リンクの検証。成功した場合はupdate-passwordページへリダイレクト
-export async function GET(request: NextRequest) {
+export const GET = withRequestLog("auth.confirm", async (request: NextRequest) => {
     const { searchParams, origin } = new URL(request.url);
 
     const token_hash = searchParams.get("token_hash");
@@ -11,7 +14,7 @@ export async function GET(request: NextRequest) {
     const providerError = searchParams.get("error");
 
     if (!token_hash && !code) {
-        console.error("password recovery callback missing code/token_hash", {
+        log.warn("password recovery callback missing code/token_hash", {
             error: providerError,
             errorCode: searchParams.get("error_code"),
             errorDescription: searchParams.get("error_description"),
@@ -42,9 +45,10 @@ export async function GET(request: NextRequest) {
     if (code) {
         const { error } = await supabase.auth.exchangeCodeForSession(code);
         if (error) {
-            console.error("password recovery code exchange failed:", error.code, error.message);
+            log.warn("password recovery code exchange failed", { code: error.code, message: error.message });
             return NextResponse.redirect(`${origin}/update-password?error=reset_link_invalid&reason=code_exchange_failed`);
         }
+        log.info("password recovery link verified (code)");
         return response;
     }
 
@@ -55,8 +59,9 @@ export async function GET(request: NextRequest) {
         type: otpType as any,
     });
     if (error) {
-        console.error("password recovery token verification failed:", error.code, error.message);
+        log.warn("password recovery token verification failed", { code: error.code, message: error.message });
         return NextResponse.redirect(`${origin}/update-password?error=reset_link_invalid&reason=token_verification_failed`);
     }
+    log.info("password recovery link verified (token_hash)");
     return response;
-}
+});

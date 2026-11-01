@@ -104,6 +104,7 @@ function DemoImageSection({ task, onChange }: {
             const typeLabel = IMAGE_TYPES.find(t => t.key === img.imageType)?.label ?? img.imageType;
             return (
               <div key={img.id} style={{ position: "relative", borderRadius: "var(--radius-md)", overflow: "hidden", border: "1px solid var(--border-soft)", background: "var(--surface)" }}>
+                {/* eslint-disable-next-line @next/next/no-img-element -- ブラウザ内の一時URL（blob:）のプレビューのため、画像最適化の対象外 */}
                 <img src={img.objectUrl} alt={img.fileName} onClick={() => { setPreview(img.objectUrl); setPreviewFileName(img.fileName); }}
                   style={{ width: "100%", aspectRatio: "1", objectFit: "cover", cursor: "pointer" }} />
                 <div className="tag" style={{ position: "absolute", top: 4, left: 4 }}>{typeLabel}</div>
@@ -136,6 +137,7 @@ function DemoImageSection({ task, onChange }: {
       </div>
       {preview && (
         <div onClick={() => setPreview(null)} style={{ position: "fixed", inset: 0, background: "rgba(11,11,15,0.85)", zIndex: 500, display: "flex", alignItems: "center", justifyContent: "center", cursor: "zoom-out" }}>
+          {/* eslint-disable-next-line @next/next/no-img-element -- ブラウザ内の一時URL（blob:）のプレビューのため、画像最適化の対象外 */}
           <img src={preview} alt="preview" style={{ maxWidth: "90vw", maxHeight: "90vh", borderRadius: "var(--radius-lg)", boxShadow: "var(--shadow-lg)" }} />
           <button
             onClick={e => { e.stopPropagation(); handleDownload(preview, previewFileName); }}
@@ -321,7 +323,7 @@ export default function DemoApp({ returnPath, onBack }: {
             {filtered.length === 0 && (
               <div style={{ textAlign: "center", marginTop: 60 }}>
                 <div style={{ color: "var(--meta)", fontSize: 14, marginBottom: 8 }}>タスクがありません</div>
-                <div className="text-meta">「＋ 新規登録」からタスクを追加してみてください</div>
+                <div className="text-meta">「新規登録」からタスクを追加してみてください</div>
               </div>
             )}
             <div style={{ display: "grid", gap: 10 }}>
@@ -455,6 +457,7 @@ export default function DemoApp({ returnPath, onBack }: {
                       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(80px,1fr))", gap: 8, marginBottom: 10 }}>
                         {pendingImages.map(pi => (
                           <div key={pi.id} style={{ position: "relative", borderRadius: "var(--radius-md)", overflow: "hidden", border: "1px solid var(--border-soft)", background: "var(--surface)" }}>
+                            {/* eslint-disable-next-line @next/next/no-img-element -- ブラウザ内の一時URL（blob:）のプレビューのため、画像最適化の対象外 */}
                             <img src={pi.objectUrl} alt={pi.fileName} style={{ width: "100%", aspectRatio: "1", objectFit: "cover" }} />
                             <div className="tag" style={{ position: "absolute", top: 3, left: 3 }}>
                               {IMAGE_TYPES.find(t => t.key === pi.imageType)?.label}
@@ -544,14 +547,15 @@ export default function DemoApp({ returnPath, onBack }: {
                   ].map(([label, value]) => (
                     <div key={label} style={{ padding: 16, borderRadius: "var(--radius-md)", background: "var(--surface-2, var(--bg))" }}>
                       <div className="text-meta" style={{ marginBottom: 8 }}>{label}</div>
-                      <div style={{ fontSize: 22, fontWeight: 700 }}>{value}</div>
+                      <div style={{ fontSize: 22, fontWeight: 600 }}>{value}</div>
                     </div>
                   ))}
                 </div>
                 <div style={{ display: "grid", justifyItems: "start", gap: 8, marginTop: 24 }}>
                   {["x.com", "instagram.com", "pixiv.net"].map(host => (
                     <span key={host} className="btn btn-secondary share-page-social-link" style={{ cursor: "default" }}>
-                      <span className="share-page-social-host">{host} のプロフィールを見る ↗</span>
+                      <span className="share-page-social-host">{host} のプロフィールを見る</span>
+                      <span aria-hidden="true" style={{ display: "inline-flex", flexShrink: 0 }}><Icon name="external" size={14} /></span>
                     </span>
                   ))}
                 </div>
@@ -591,7 +595,9 @@ export default function DemoApp({ returnPath, onBack }: {
       <footer className="app-footer">
         <div className="footer-links">
           {[
+            { href: "/about", label: "運営者・サービスについて" },
             { href: "/guide", label: "使い方" },
+            { href: "/tools", label: "無料ツール" },
             { href: "/terms", label: "利用規約" },
             { href: "/privacy", label: "プライバシーポリシー" },
             { href: "/tokusho", label: "特定商取引法" },

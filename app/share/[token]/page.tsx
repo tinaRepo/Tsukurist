@@ -1,14 +1,20 @@
 import { getPublicShareData, type PublicShareData } from "@/lib/server/public-share";
+import { flushLogs, getLogger } from "@/lib/server/logger";
 import Image from "next/image";
+import { Icon } from "@/components/TaskShared";
 
 export const dynamic = "force-dynamic";
+
+const log = getLogger("page.share");
 
 export default async function PublicSharePage({ params }: { params: { token: string } }) {
   let data: PublicShareData | null;
   try {
     data = await getPublicShareData(params.token);
   } catch (error) {
-    console.error("public share page load failed", error);
+    // ページ描画は withRequestLog を使えないため、ここで直接記録して書き切る（トークンは記録しない）
+    log.error("public share page load failed", error);
+    await flushLogs();
     return <UnavailablePage />;
   }
 
@@ -50,7 +56,8 @@ export default async function PublicSharePage({ params }: { params: { token: str
             {socialLinks.map(({ url, host }) => (
               <a key={url} href={url} target="_blank" rel="noopener noreferrer nofollow"
                 className="btn btn-secondary share-page-social-link" style={{ textDecoration: "none" }}>
-                <span className="share-page-social-host">{host} のプロフィールを見る ↗</span>
+                <span className="share-page-social-host">{host} のプロフィールを見る</span>
+                <span aria-hidden="true" style={{ display: "inline-flex", flexShrink: 0 }}><Icon name="external" size={14} /></span>
               </a>
             ))}
           </div>
@@ -83,7 +90,7 @@ function Metric({ label, value }: { label: string; value: string }) {
   return (
     <div style={{ padding: 16, borderRadius: "var(--radius-md)", background: "var(--surface-2, var(--bg))" }}>
       <div className="text-meta" style={{ marginBottom: 8 }}>{label}</div>
-      <div style={{ fontSize: 22, fontWeight: 700 }}>{value}</div>
+      <div style={{ fontSize: 22, fontWeight: 600 }}>{value}</div>
     </div>
   );
 }

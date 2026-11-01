@@ -6,10 +6,12 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/server/admin";
 import { alertAdmin } from "@/lib/server/monitor";
+import { getLogger, putContext, withRequestLog } from "@/lib/server/logger";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
+const log = getLogger("stripe.webhook");
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
 // Price IDからプランを判定
@@ -46,6 +48,7 @@ async function updateSubscriptionProfile(
 
   const userId = profile?.id ?? sub.metadata?.supabase_user_id;
   if (!userId) throw new Error(`No user profile found for Stripe customer ${customerId}`);
+  putContext({ userId });
 
   let query = admin.from("user_profiles")
     .update({ ...values, ...(!profile ? { stripe_customer_id: customerId } : {}) })
@@ -58,6 +61,10 @@ async function updateSubscriptionProfile(
   if (!data?.length && !onlyIfCurrentSubscription) {
     throw new Error(`No user profile updated for Stripe customer ${customerId}`);
   }
+  log.info("subscription profile updated", {
+    userId, subscriptionId: sub.id, plan: values.plan, status: values.subscription_status,
+    skipped: !data?.length,
+  });
 }
 
 // サブスクリプションの「最新の状態」をプロフィールへ反映する。
@@ -72,6 +79,7 @@ async function applySubscription(admin: SupabaseClient, sub: Stripe.Subscription
       const priceId = sub.items.data[0]?.price.id;
       const plan = getPlanFromPriceId(priceId);
       if (!plan) {
+        log.error("unknown Stripe price id", { priceId, subscriptionId: sub.id, customerId });
         await alertAdmin(admin, "stripe-unknown-price", "Stripeの未知のPrice IDを受信しました",
           `priceId=${priceId} subscription=${sub.id} customer=${customerId}\nSTRIPE_*_PRICE_ID の環境変数を確認してください。`);
         throw new Error(`Unknown priceId: ${priceId}`); // 500を返してStripeに再送させる（環境変数の修正後に回復する）
@@ -93,6 +101,7 @@ async function applySubscription(admin: SupabaseClient, sub: Stripe.Subscription
         { plan: "free", stripe_subscription_id: null, subscription_status: "inactive" }, true);
       break;
     default:
+      log.debug("subscription status ignored", { status: sub.status, subscriptionId: sub.id });
       break; // incomplete / paused などは何もしない
   }
 }
@@ -123,20 +132,25 @@ async function notifyPaymentFailed(admin: SupabaseClient, customerId: string) {
     to: email,
     ...paymentFailedEmail(appUrl),
   });
+  log.info("payment failed email sent", { userId: profile.id });
 }
 
-export async function POST(request: NextRequest) {
+export const POST = withRequestLog("stripe.webhook", async (request: NextRequest) => {
   const body = await request.text();
   const sig = request.headers.get("stripe-signature");
-  if (!sig) return NextResponse.json({ error: "No signature" }, { status: 400 });
+  if (!sig) {
+    log.warn("webhook rejected: no signature");
+    return NextResponse.json({ error: "No signature" }, { status: 400 });
+  }
 
   let event: Stripe.Event;
   try {
     event = stripe.webhooks.constructEvent(body, sig, process.env.STRIPE_WEBHOOK_SECRET!);
   } catch (e: any) {
-    console.error("Webhook signature error:", e.message);
+    log.warn("webhook signature verification failed", { message: e.message });
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
   }
+  putContext({ stripeEventId: event.id, stripeEventType: event.type });
 
   const admin = createAdminClient();
 
@@ -146,9 +160,7 @@ export async function POST(request: NextRequest) {
     .upsert({ id: event.id, type: event.type }, { onConflict: "id", ignoreDuplicates: true })
     .select("id");
   if (claimError) {
-    console.error("stripe_events claim failed:", {
-      eventId: event.id,
-      eventType: event.type,
+    log.error("stripe_events claim failed", {
       code: claimError.code,
       message: claimError.message,
       details: claimError.details,
@@ -157,6 +169,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "temporary error" }, { status: 500 }); // Stripeが再送する
   }
   if (!claimed || claimed.length === 0) {
+    log.info("duplicate event ignored");
     return NextResponse.json({ received: true, duplicate: true });
   }
 
@@ -192,6 +205,7 @@ export async function POST(request: NextRequest) {
         if (invoice.billing_reason === "subscription_create") break;
         const customerId = customerIdOf(invoice.customer);
         if (!customerId) break;
+        log.warn("invoice payment failed", { customerId, invoiceId: invoice.id });
         await mustUpdate(admin.from("user_profiles")
           .update({ subscription_status: "past_due" })
           .eq("stripe_customer_id", customerId)
@@ -211,17 +225,19 @@ export async function POST(request: NextRequest) {
       }
 
       default:
+        log.debug("event type not handled");
         break;
     }
   } catch (e: any) {
-    console.error(`Webhook handler error (${event.type}):`, e);
+    log.error("webhook handler error", e);
     // 再送で再処理できるよう、処理済みの記録を取り消す
     const { error: releaseError } = await admin.from("stripe_events").delete().eq("id", event.id);
-    if (releaseError) console.error("Stripe webhook event claim could not be released:", releaseError);
+    if (releaseError) log.error("stripe event claim could not be released", releaseError);
     await alertAdmin(admin, `stripe-webhook-${event.type}`, `Stripe Webhookの処理に失敗しました（${event.type}）`,
       `event=${event.id}\n${String(e?.stack ?? e)}`);
     return NextResponse.json({ error: "handler error" }, { status: 500 });
   }
 
+  log.info("event processed");
   return NextResponse.json({ received: true });
-}
+});

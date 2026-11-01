@@ -50,6 +50,7 @@ export interface Task {
   status: TaskStatus;
   submission_date?: string; // 提出日（旧: ラフ提出日）
   notes?: string;
+  remind_before_days?: number | null; // タスク個別リマインド（納期の何日前に通知するか。null/未設定=なし）
   created_at: string;
   updated_at: string;
   images?: TaskImage[];
@@ -69,6 +70,7 @@ export interface TaskInput {
   status: TaskStatus;
   submission_date: string | null;
   notes: string | null;
+  remind_before_days: number | null;
 }
 
 // --- タグ ---
