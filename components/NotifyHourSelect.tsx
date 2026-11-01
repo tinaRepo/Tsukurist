@@ -68,7 +68,7 @@ export default function NotifyHourSelect({ userId, enabled = true }: { userId: s
     <div style={{ padding: "10px 16px", borderBottom: "1px solid var(--divider)" }}>
       <label className="row" style={{ gap: 12, fontSize: 14 }}>
         <span className="user-menu-item-icon"><Icon name="bell" size={17} /></span>
-        <span className="grow" style={{ whiteSpace: "nowrap" }}>通知時刻（日本時間）</span>
+        <span className="grow">通知時刻（日本時間）</span>
         <select value={hour} disabled={locked} onChange={e => changeHour(Number(e.target.value))}
           aria-label="納期通知の時刻" className="select"
           style={{ width: "auto", height: 36, minHeight: 36, padding: "4px 10px" }}>

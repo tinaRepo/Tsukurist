@@ -29,10 +29,9 @@ import {
   type OfflineSnapshot, type OfflineTaskChange,
 } from "@/lib/offline-tasks";
 import { TagPicker, TagManagerModal } from "./TagPicker";
-import PushNotificationToggle from "./PushNotificationToggle";
-import NotifyHourSelect from "./NotifyHourSelect";
 import { TASK_REMIND_OPTIONS, formatDaysBefore } from "@/lib/notify";
 const NotificationsModal = dynamic(() => import("./NotificationsModal"), { ssr: false });
+const NotificationSettingsModal = dynamic(() => import("./NotificationSettingsModal"), { ssr: false });
 const ContactModal = dynamic(() => import("./ContactModal"), { ssr: false });
 const InstallPromptBanner = dynamic(() => import("./InstallPromptBanner"), { ssr: false });
 const ShareSettingsModal = dynamic(() => import("./ShareSettingsModal"), { ssr: false });
@@ -332,6 +331,7 @@ export default function TaskApp() {
   const [nameInput, setNameInput] = useState("");
   const [showDeleteAccount, setShowDeleteAccount] = useState(false);
   const [showAccountSettings, setShowAccountSettings] = useState(false);
+  const [showNotificationSettings, setShowNotificationSettings] = useState(false);
   const [showShareSettings, setShowShareSettings] = useState(false);
   const [showTagManager, setShowTagManager] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -991,13 +991,13 @@ export default function TaskApp() {
   }, [detailId, tasks]);
 
   useEffect(() => {
-    if (showForm || detailId || showUserMenu || showAccountSettings) {
+    if (showForm || detailId || showUserMenu || showAccountSettings || showNotificationSettings) {
       document.body.style.overflow = "hidden";
     } else {
       document.body.style.overflow = "";
     }
     return () => { document.body.style.overflow = ""; };
-  }, [showForm, detailId, showUserMenu, showAccountSettings]);
+  }, [showForm, detailId, showUserMenu, showAccountSettings, showNotificationSettings]);
 
   // Escキーでユーザーメニューを閉じる
   useEffect(() => {
@@ -1139,8 +1139,11 @@ export default function TaskApp() {
                   )}
 
                   <div className="user-menu-label">通知</div>
-                  <PushNotificationToggle enabled={isOnline} />
-                  <NotifyHourSelect userId={user?.id ?? null} enabled={isOnline} />
+                  <button onClick={() => { setShowNotificationSettings(true); setShowUserMenu(false); }}
+                    className="user-menu-item">
+                    <span className="user-menu-item-icon"><Icon name="bell" size={17} /></span>
+                    <span>通知設定</span>
+                  </button>
 
                   <div className="user-menu-label">データ</div>
                   <button onClick={() => { setShowTagManager(true); setShowUserMenu(false); }} disabled={!isOnline}
@@ -1807,6 +1810,13 @@ export default function TaskApp() {
       )}
 
       <ContactModal open={showContact} onClose={() => setShowContact(false)} />
+
+      <NotificationSettingsModal
+        open={showNotificationSettings}
+        onClose={() => setShowNotificationSettings(false)}
+        userId={user?.id ?? null}
+        online={isOnline}
+      />
 
       <NotificationsModal
         open={showNotifications}
