@@ -864,18 +864,18 @@
     background: rgba(0, 0, 0, 0.4);
   }
 
-  /* 画面中央に置き、内容に合わせた幅で内側だけをスクロールさせる */
+  /* ユーザーボタンの下に表示し、内容に合わせた幅で内側だけをスクロールさせる */
   .user-menu {
-    position: fixed;
-    left: 50%;
-    right: auto;
-    top: 50%;
+    position: absolute;
+    left: auto;
+    right: 0;
+    top: calc(100% + 8px);
     bottom: auto;
     width: max-content;
-    max-width: min(360px, calc(100vw - 32px));
-    max-height: calc(100vh - 32px);
-    max-height: calc(100dvh - 32px);
-    transform: translate(-50%, -50%);
+    max-width: min(320px, calc(100vw - 32px));
+    max-height: calc(100vh - 96px);
+    max-height: calc(100dvh - 96px);
+    transform: none;
     border-radius: var(--radius-lg);
   }
 
