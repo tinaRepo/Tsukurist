@@ -595,6 +595,7 @@ export default function DemoApp({ returnPath, onBack }: {
       <footer className="app-footer">
         <div className="footer-links">
           {[
+            { href: "/about", label: "運営者・サービスについて" },
             { href: "/guide", label: "使い方" },
             { href: "/tools", label: "無料ツール" },
             { href: "/terms", label: "利用規約" },

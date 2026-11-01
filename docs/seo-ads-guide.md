@@ -4,6 +4,7 @@
 
 - 本番の正規URLは `https://tsukurist.com` です。サイトURLの定義は `lib/site.ts` の `SITE_URL` にあり、`lib/seo.ts` から再エクスポートされています。
 - 共通metadataは `app/layout.tsx`、ページ固有のmetadataは各公開ページで設定します。
+- `/about` はツクリストの公式なサービス説明・運営者情報ページです。運営者名などは特定商取引法に基づく表記と一致させ、トップページの `WebApplication` 構造化データは運営者の `Person` エンティティ（`/about#operator`）を参照します。情報に変更があった場合は両ページを合わせて更新します。
 - トップページ `/` は未ログイン時にサービス紹介を表示し、ログインCookieがある場合はアプリを表示して `noindex` にします。旧URL `/lp` は `/` へ恒久転送します。ログイン後のアプリ、デモ、管理、課金画面は検索対象にしません。
 - 公開対象のURLだけを `app/sitemap.ts` に登録し、`public/robots.txt` のサイトマップURLと合わせます。検索対象外の画面は `noindex` metadataで指定します。robots.txtでクロール自体を拒否すると検索エンジンがnoindexを確認できないため、通常はDisallowしません。`robots.txt` は静的ファイルのため、Preview環境を自動的に全面Disallowする仕組みではありません。
 - URLや公開ページを変更した場合はmetadata、canonical、サイトマップ、robots.txtをまとめて確認します。

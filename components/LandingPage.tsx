@@ -2,6 +2,7 @@
 
 import { Icon } from "@/components/TaskShared";
 import SiteHeader from "@/components/SiteHeader";
+import { SITE_URL } from "@/lib/site";
 import { useState } from "react";
 
 // モックデータ
@@ -47,12 +48,17 @@ export default function LandingPage() {
           __html: JSON.stringify({
             "@context": "https://schema.org",
             "@type": "WebApplication",
+            "@id": `${SITE_URL}/#webapp`,
             name: "ツクリスト",
-            url: "https://tsukurist.com",
+            alternateName: "Tsukurist",
+            url: SITE_URL,
+            mainEntityOfPage: SITE_URL,
             applicationCategory: "BusinessApplication",
             operatingSystem: "Web",
             inLanguage: "ja",
             description: "外注・依頼の納期、金額、確認用画像をまとめて管理できる納期管理Webアプリ",
+            creator: { "@id": `${SITE_URL}/about#operator` },
+            publisher: { "@id": `${SITE_URL}/about#operator` },
             offers: [
               { "@type": "Offer", name: "無料", price: "0", priceCurrency: "JPY" },
               { "@type": "Offer", name: "スタンダード", price: "300", priceCurrency: "JPY" },
@@ -202,6 +208,7 @@ export default function LandingPage() {
           <div className="footer-links">
             {[
               { href: "/", label: "サービス紹介" },
+              { href: "/about", label: "運営者・サービスについて" },
               { href: "/guide", label: "使い方" },
               { href: "/tools", label: "無料ツール" },
               { href: "/terms", label: "利用規約" },

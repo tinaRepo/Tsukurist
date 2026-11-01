@@ -6,6 +6,7 @@ import { TOOLS } from "@/lib/tools";
 export default function sitemap(): MetadataRoute.Sitemap {
     const publicPages = [
         ["/", 1.0],
+        ["/about", 0.6],
         ["/guide", 0.7],
         ["/tools", 0.7],
         ["/terms", 0.3],
