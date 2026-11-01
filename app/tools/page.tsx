@@ -13,9 +13,13 @@ export const metadata = createPublicPageMetadata(
 
 export default function ToolsPage() {
   return (
-    <PublicShell current="tools" crumbs={[{ label: "無料ツール" }]}
-      title="外注・依頼に役立つ無料ツール"
-      description="登録なしでそのまま使えます。入力した内容は、お使いのブラウザの中だけで処理されます。">
+    <PublicShell current="tools" crumbs={[{ label: "無料ツール" }]}>
+      <div style={{ textAlign: "center", marginBottom: 32 }}>
+        <h1 style={{ fontSize: 22, marginBottom: 8 }}>外注・依頼に役立つ無料ツール</h1>
+        <p className="text-muted" style={{ fontSize: 14, lineHeight: 1.8 }}>
+          登録なしでそのまま使えます。入力した内容は、お使いのブラウザの中だけで処理されます。
+        </p>
+      </div>
       <div style={{ display: "grid", gap: 10 }}>
         {TOOLS.map(t => (
           <Link key={t.slug} href={`/tools/${t.slug}`} className="card card-interactive row"

@@ -3,7 +3,8 @@ import { SITE_URL, SUPPORT_EMAIL } from "@/lib/site";
 
 export default function TokushoPage() {
   return (
-    <PublicShell crumbs={[{ label: "特定商取引法に基づく表記" }]} title="特定商取引法に基づく表記">
+    <PublicShell crumbs={[{ label: "特定商取引法に基づく表記" }]}>
+        <h1 style={{ fontSize: 24, lineHeight: 1.4, marginBottom: 24 }}>特定商取引法に基づく表記</h1>
 
         <table className="tokusho-table">
           <tbody>

@@ -13,26 +13,34 @@ const NAV = [
   { key: "tools", href: "/tools", label: "無料ツール" },
 ] as const;
 
-export default function SiteHeader({ current, wide = false }: { current?: "guide" | "tools"; wide?: boolean }) {
-  const loggedIn = useIsLoggedIn();
+export default function SiteHeader({ current, wide = false, dark = false }: {
+  current?: "guide" | "tools"; wide?: boolean; dark?: boolean;
+}) {
   return (
-    <header className="site-header">
+    <header className={`site-header${dark ? " site-header-dark" : ""}`}>
       <div className={wide ? "site-header-inner wide" : "site-header-inner"}>
         <Link href="/" className="site-header-logo">ツクリスト</Link>
-        <nav aria-label="サイト内メニュー" className="site-header-nav">
-          {NAV.map(n => (
-            <Link key={n.key} href={n.href} className="site-header-link"
-              aria-current={current === n.key ? "page" : undefined}>
-              {n.label}
-            </Link>
-          ))}
-          {/* 判定前は同じ大きさの見えないボタンで場所だけ確保する */}
-          <Link href={loggedIn ? "/" : "/login"} className="btn btn-primary btn-sm site-header-cta"
-            style={{ visibility: loggedIn === null ? "hidden" : "visible" }}>
-            {loggedIn ? "アプリを開く" : "ログイン"}
-          </Link>
-        </nav>
+        {!dark && <SiteHeaderNav current={current} />}
       </div>
     </header>
+  );
+}
+
+function SiteHeaderNav({ current }: { current?: "guide" | "tools" }) {
+  const loggedIn = useIsLoggedIn();
+  return (
+    <nav aria-label="サイト内メニュー" className="site-header-nav">
+      {NAV.map(n => (
+        <Link key={n.key} href={n.href} className="site-header-link"
+          aria-current={current === n.key ? "page" : undefined}>
+          {n.label}
+        </Link>
+      ))}
+      {/* 判定前は同じ大きさの見えないボタンで場所だけ確保する */}
+      <Link href={loggedIn ? "/" : "/login"} className="btn btn-primary btn-sm site-header-cta"
+        style={{ visibility: loggedIn === null ? "hidden" : "visible" }}>
+        {loggedIn ? "アプリを開く" : "ログイン"}
+      </Link>
+    </nav>
   );
 }

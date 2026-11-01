@@ -17,6 +17,13 @@
   border-bottom: 1px solid var(--border-soft);
 }
 
+.site-header-dark {
+  background: var(--surface-black);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  border-bottom-color: var(--border-on-inverse);
+}
+
 .site-header-inner {
   max-width: 720px;
   margin: 0 auto;
@@ -45,6 +52,10 @@
   text-decoration: none;
 }
 
+.site-header-dark .site-header-logo {
+  color: var(--fg-on-inverse);
+}
+
 .site-header-nav {
   display: flex;
   align-items: center;
@@ -64,9 +75,17 @@
   white-space: nowrap;
 }
 
+.site-header-dark .site-header-link {
+  color: var(--muted-on-inverse);
+}
+
 .site-header-link[aria-current="page"] {
   color: var(--fg);
   font-weight: 600;
+}
+
+.site-header-dark .site-header-link[aria-current="page"] {
+  color: var(--fg-on-inverse);
 }
 
 /* .btn-sm より優先させるため2クラスで指定 */
@@ -172,24 +191,6 @@
   max-width: 720px;
   margin: 0 auto;
   padding: 24px 16px 64px;
-}
-
-.public-page-header .brand {
-  min-width: 0;
-}
-
-.public-page-title {
-  color: var(--fg-on-inverse);
-  font-size: 22px;
-  line-height: 1.4;
-}
-
-.public-page-description {
-  max-width: 720px;
-  margin-top: 6px;
-  color: var(--muted-on-inverse);
-  font-size: 14px;
-  line-height: 1.7;
 }
 
 @media (min-width: 641px) {

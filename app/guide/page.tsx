@@ -6,9 +6,14 @@ import { GUIDE_PAGES } from "@/lib/guide-pages";
 // 使い方ガイドのハブページ（server component）
 export default function GuidePage() {
   return (
-    <PublicShell current="guide" crumbs={[{ label: "使い方ガイド" }]}
-      title="ツクリスト 使い方ガイド"
-      description="依頼・外注の納期を管理するための機能を、画面の操作に沿ってテーマごとに解説しています。はじめての方は「はじめかた」から読むのがおすすめです。">
+    <PublicShell current="guide" crumbs={[{ label: "使い方ガイド" }]}>
+      <div style={{ textAlign: "center", marginBottom: 32 }}>
+        <h1 style={{ fontSize: 22, marginBottom: 8 }}>ツクリスト 使い方ガイド</h1>
+        <p className="text-muted" style={{ fontSize: 14, lineHeight: 1.8 }}>
+          依頼・外注の納期を管理するための機能を、画面の操作に沿ってテーマごとに解説しています。
+          はじめての方は「はじめかた」から読むのがおすすめです。
+        </p>
+      </div>
       <div style={{ display: "grid", gap: 10 }}>
         {GUIDE_PAGES.map(p => (
           <Link key={p.slug} href={`/guide/${p.slug}`} className="card card-interactive row"
