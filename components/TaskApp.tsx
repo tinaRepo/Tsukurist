@@ -991,13 +991,19 @@ export default function TaskApp() {
   }, [detailId, tasks]);
 
   useEffect(() => {
-    if (showForm || detailId || showUserMenu || showAccountSettings || showNotificationSettings) {
+    if (
+      showForm || detailId || showUserMenu || showAccountSettings || showNotificationSettings ||
+      showShareSettings || showTagManager || showNameEdit || showPasswordModal || showUnlinkWarning
+    ) {
       document.body.style.overflow = "hidden";
     } else {
       document.body.style.overflow = "";
     }
     return () => { document.body.style.overflow = ""; };
-  }, [showForm, detailId, showUserMenu, showAccountSettings, showNotificationSettings]);
+  }, [
+    showForm, detailId, showUserMenu, showAccountSettings, showNotificationSettings,
+    showShareSettings, showTagManager, showNameEdit, showPasswordModal, showUnlinkWarning,
+  ]);
 
   // Escキーでユーザーメニューを閉じる
   useEffect(() => {
