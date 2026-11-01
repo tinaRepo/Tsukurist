@@ -268,7 +268,7 @@ export default function LoginPage() {
           </a>
         )}
 
-        <div style={{ marginTop: 22, textAlign: "center", fontSize: 13, color: "var(--muted)", display: "flex", flexDirection: "column", gap: 8 }}>
+        <div style={{ marginTop: 22, textAlign: "center", fontSize: 13, color: "var(--muted)", display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
           {mode === "login" && (
             <>
               <span>アカウントをお持ちでない方は
@@ -299,6 +299,7 @@ export default function LoginPage() {
         <div className="footer-links" style={{ marginTop: 28, paddingTop: 20, borderTop: "1px solid var(--border-soft)" }}>
           {[
             { href: "/", label: "サービス紹介" },
+            { href: "/about", label: "運営者・サービスについて" },
             { href: "/guide", label: "使い方" },
             { href: "/tools", label: "無料ツール" },
             { href: "/terms", label: "利用規約" },
