@@ -1,6 +1,6 @@
 {
   "name": "tsukurist-cron-worker",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "private": true,
   "description": "Cloudflare Workers Cron Trigger that calls the Tsukurist deadline-notify endpoint on Vercel (production / staging)",
   "scripts": {
