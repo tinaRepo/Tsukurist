@@ -14,9 +14,8 @@ export default function ToolPageShell({ slug, lead, children, explanation }: {
   const others = TOOLS.filter(t => t.slug !== slug);
 
   return (
-    <PublicShell current="tools" crumbs={[{ label: "無料ツール", href: "/tools" }, { label: tool.name }]}>
-      <h1 style={{ fontSize: 24, lineHeight: 1.4, marginBottom: 12 }}>{tool.title}</h1>
-      <p className="text-muted" style={{ fontSize: 14, lineHeight: 1.8, marginBottom: 24 }}>{lead}</p>
+    <PublicShell current="tools" crumbs={[{ label: "無料ツール", href: "/tools" }, { label: tool.name }]}
+      title={tool.title} description={lead}>
 
       {children}
 

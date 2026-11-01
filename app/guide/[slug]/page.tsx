@@ -50,9 +50,9 @@ export default function GuideDetailPage({ params }: { params: { slug: string } }
   const mid = parts.length >= 4 ? Math.ceil(parts.length / 2) : -1;
 
   return (
-    <PublicShell current="guide" crumbs={[{ label: "使い方ガイド", href: "/guide" }, { label: page.summary }]}>
+    <PublicShell current="guide" crumbs={[{ label: "使い方ガイド", href: "/guide" }, { label: page.summary }]}
+      title={page.title}>
 
-        <h1 style={{ fontSize: 24, lineHeight: 1.4, marginBottom: 20 }}>{page.title}</h1>
         <Toc titles={sectionTitles(page.body)} />
         <article>
           {parts.map((part, i) => (
